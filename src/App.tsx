@@ -266,7 +266,7 @@ function CaptchaFrustratedEmojis({ onPass, onFail }: { onPass: () => void; onFai
       const pickedCorrect = picked.filter(i => correctIdx.includes(i)).length;
       const pickedWrong = picked.length - pickedCorrect;
       const remaining = Math.max(0, correctIdx.length - pickedCorrect);
-      setFeedback(`Need ${remaining} more frustrated emoji tile${remaining===1?'':'s'}. You selected ${pickedWrong} wrong.`);
+      setFeedback(`You selected ${pickedWrong} wrong emojis.`);
       onFail();
     }
   };
@@ -367,15 +367,38 @@ function CaptchaDragPiece({ onPass, onFail }: { onPass: () => void; onFail: () =
   }, [dragging]);
 
   const verify = () => {
-    const dx = (pos.x + 16) - (target.x + 16);
-    const dy = (pos.y + 16) - (target.y + 16);
-    const dist = Math.hypot(dx, dy);
-    if (dist <= 16) onPass(); else { alert(`Drop closer to the outline. You were off by ~${Math.round(dist)}px.`); onFail(); }
+    // Calculate overlap between dragged square and target
+    const squareSize = 32; // 8 * 4 (w-8 h-8 = 32px)
+    const targetSize = 32; // Same size
+    
+    // Get the intersection rectangle
+    const left = Math.max(pos.x, target.x);
+    const top = Math.max(pos.y, target.y);
+    const right = Math.min(pos.x + squareSize, target.x + targetSize);
+    const bottom = Math.min(pos.y + squareSize, target.y + targetSize);
+    
+    // Calculate intersection area
+    const intersectionWidth = Math.max(0, right - left);
+    const intersectionHeight = Math.max(0, bottom - top);
+    const intersectionArea = intersectionWidth * intersectionHeight;
+    
+    // Calculate target area
+    const targetArea = targetSize * targetSize;
+    
+    // Calculate coverage percentage
+    const coveragePercent = (intersectionArea / targetArea) * 100;
+    
+    if (coveragePercent >= 95) {
+      onPass();
+    } else {
+      alert(`Need 95% coverage. You achieved ${coveragePercent.toFixed(1)}% coverage.`);
+      onFail();
+    }
   };
 
   return (
     <div className="space-y-3">
-      <div className="text-sm">Drag the square into the outlined target.</div>
+      <div className="text-sm">Drag the square to cover the outlined target.</div>
       <div ref={containerRef} className="relative w-[320px] h-[160px] border rounded-lg bg-slate-50 overflow-hidden">
         <div className="absolute left-[140px] top-[40px] w-8 h-8 rounded-lg border-2 border-dashed"/>
         <div
