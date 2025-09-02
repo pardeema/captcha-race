@@ -96,7 +96,7 @@ export default function App() {
 
 function CaptchaColumn({ label }: { label: string }) {
   const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const roundsParam = Math.min(10, Math.max(5, Number(params.get('rounds') || 7))); // default 7 (between 5–10)
+  const roundsParam = Math.min(20, Math.max(10, Number(params.get('rounds') || 15))); // default 15 (between 10–20)
 
   const [roundIdx, setRoundIdx] = useState<number>(-1); // -1 = not started
   const [retries, setRetries] = useState(0);
@@ -425,22 +425,38 @@ function CaptchaBorder({ onPass, onFail }: { onPass: () => void; onFail: () => v
     <div className="space-y-3">
       <div className="text-sm">Select all squares that border the <span className="font-medium">🎯</span> tile.</div>
       <div className="grid grid-cols-4 gap-2">
-        {Array.from({length:size*size}).map((_, idx) => (
-          <button key={idx}
-            onClick={() => setPicked(p => p.includes(idx) ? p.filter(i=>i!==idx) : [...p, idx])}
-            className={`aspect-square rounded-lg border text-xl flex items-center justify-center ${picked.includes(idx)?'bg-slate-200':'bg-white'}`}>
-            {idx===targetIdx ? '🎯' : ''}
-        </button>
-        ))}
+        {Array.from({length:size*size}).map((_, idx) => {
+          const isTarget = idx === targetIdx;
+          const isNeighbor = neighbors.includes(idx);
+          const isPicked = picked.includes(idx);
+          
+          return (
+            <button key={idx}
+              onClick={() => setPicked(p => p.includes(idx) ? p.filter(i=>i!==idx) : [...p, idx])}
+              className={`aspect-square rounded-lg text-xl flex items-center justify-center relative ${
+                isTarget 
+                  ? 'bg-yellow-100 border-2 border-yellow-400' 
+                  : isNeighbor 
+                    ? 'bg-blue-50 border-2 border-blue-300' 
+                    : 'bg-white border border-gray-300'
+              } ${isPicked ? 'ring-2 ring-green-400' : ''}`}>
+              {isTarget ? '🎯' : ''}
+              {isNeighbor && !isTarget && (
+                <div className="absolute inset-0 border-2 border-dashed border-blue-400 rounded-lg"></div>
+              )}
+            </button>
+          );
+        })}
       </div>
       <Button onClick={verify}>Verify</Button>
     </div>
   );
 }
 
-// 6) Hold steady (2s)
+// 6) Hold steady (2s ±50ms)
 function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => void }) {
   const REQUIRED = 2000; // ms
+  const TOLERANCE = 50; // ±50ms
   const [holding, setHolding] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const tRef = useRef<number | null>(null);
@@ -461,12 +477,19 @@ function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => voi
   const up = () => {
     const ms = elapsed;
     setHolding(false);
-    if (ms >= REQUIRED) onPass(); else { alert(`Hold steady for 2 seconds. You held ${Math.round(ms)}ms.`); onFail(); }
+    const minTime = REQUIRED - TOLERANCE;
+    const maxTime = REQUIRED + TOLERANCE;
+    if (ms >= minTime && ms <= maxTime) {
+      onPass();
+    } else {
+      alert(`Hold for exactly 2 seconds (±50ms). You held ${Math.round(ms)}ms. `);
+      onFail();
+    }
   };
 
   return (
     <div className="space-y-3">
-      <div className="text-sm">Press and hold the button for <b>2 seconds</b>.</div>
+      <div className="text-sm">Press and hold the button for <b>exactly 2 seconds</b>.</div>
       <Button onMouseDown={down} onMouseUp={up} onMouseLeave={() => holding && up()} onTouchStart={down} onTouchEnd={up}>
         {holding ? `Holding… ${Math.round(elapsed)}ms` : 'Hold'}
       </Button>
