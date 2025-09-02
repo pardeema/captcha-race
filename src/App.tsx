@@ -266,14 +266,14 @@ function CaptchaFrustratedEmojis({ onPass, onFail }: { onPass: () => void; onFai
       const pickedCorrect = picked.filter(i => correctIdx.includes(i)).length;
       const pickedWrong = picked.length - pickedCorrect;
       const remaining = Math.max(0, correctIdx.length - pickedCorrect);
-      setFeedback(`Need ${remaining} more ${target} tile${remaining===1?'':'s'}. You selected ${pickedWrong} wrong.`);
+      setFeedback(`Need ${remaining} more frustrated emoji tile${remaining===1?'':'s'}. You selected ${pickedWrong} wrong.`);
       onFail();
     }
   };
 
   return (
     <div className="space-y-3">
-      <div className="text-sm">Select all tiles with <span className="font-medium">{target}</span>.</div>
+      <div className="text-sm">Select all tiles with <span className="font-medium">the frustrated emoji</span>.</div>
       <div className="grid grid-cols-3 gap-2">
         {grid.map((emoji, idx) => (
           <button key={idx} className={`aspect-square rounded-lg border flex items-center justify-center text-3xl ${picked.includes(idx) ? 'bg-slate-200' : 'bg-white'}`}
