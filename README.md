@@ -1,6 +1,6 @@
 # CAPTCHA Race
 
-A demonstration app comparing traditional CAPTCHA challenges with Kasada's frictionless verification. Users complete frustrating CAPTCHA challenges and then experience Kasada's seamless verification to see the time difference.
+A demonstration app highlighting difficulty of puzzle-based CAPTCHA, especially when under time pressure for limited time events. Users complete frustrating CAPTCHA challenges and try to beat the clock.
 
 ## Features
 
