@@ -414,7 +414,7 @@ function CaptchaDragPiece({ onPass, onFail }) {
             onFail();
         }
     };
-    return (_jsxs("div", { className: "space-y-3", children: [_jsx("div", { className: "text-sm", children: "Drag the square to cover the outlined target." }), _jsxs("div", { ref: containerRef, className: "relative w-[320px] h-[160px] border rounded-lg bg-slate-50 overflow-hidden", children: [_jsx("div", { className: "absolute left-[140px] top-[40px] w-8 h-8 rounded-lg border-2 border-dashed" }), _jsx("div", { className: `absolute w-8 h-8 rounded-lg bg-slate-300 border cursor-grab active:cursor-grabbing`, style: { left: pos.x, top: pos.y }, onMouseDown: () => setDragging(true), onTouchStart: () => setDragging(true) })] }), _jsx(Button, { onClick: verify, children: "Verify" })] }));
+    return (_jsxs("div", { className: "space-y-3", children: [_jsx("div", { className: "text-sm", children: "Drag the logo to cover the outlined target." }), _jsxs("div", { ref: containerRef, className: "relative w-[320px] h-[160px] border rounded-lg bg-slate-50 overflow-hidden", children: [_jsx("div", { className: "absolute left-[140px] top-[40px] w-8 h-8 rounded-lg border-2 border-dashed" }), _jsx("img", { src: "/kasada-logo-mark-black-rgb.svg", alt: "Kasada Logo", className: `absolute w-8 h-8 cursor-grab active:cursor-grabbing`, style: { left: pos.x, top: pos.y }, onMouseDown: () => setDragging(true), onTouchStart: () => setDragging(true) })] }), _jsx(Button, { onClick: verify, children: "Verify" })] }));
 }
 // 5) Border squares — select all neighbors around 🎯
 function CaptchaBorder({ onPass, onFail }) {
