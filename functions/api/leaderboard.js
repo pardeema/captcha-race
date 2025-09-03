@@ -20,7 +20,7 @@ export async function onRequest(context) {
   if (request.method === 'GET') {
     // Get leaderboard data
     try {
-      const data = await env['CAPTCHA-LEADERBOARD'].get(LEADERBOARD_KEY);
+      const data = await env['KV'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
       return new Response(JSON.stringify(leaderboard), {
         headers: { 
@@ -55,11 +55,11 @@ export async function onRequest(context) {
       }
       
       // Debug: Check if KV binding exists
-      if (!env['CAPTCHA-LEADERBOARD']) {
+      if (!env['KV']) {
         return new Response(JSON.stringify({ 
           error: 'KV binding not found', 
           availableBindings: Object.keys(env),
-          debug: 'CAPTCHA-LEADERBOARD binding is missing'
+          debug: 'KV binding is missing'
         }), {
           status: 500,
           headers: { 
@@ -70,7 +70,7 @@ export async function onRequest(context) {
       }
       
       // Get existing leaderboard
-      const data = await env['CAPTCHA-LEADERBOARD'].get(LEADERBOARD_KEY);
+      const data = await env['KV'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
       
       // Add new score and sort by CAPTCHA time (ascending - fastest first)
@@ -81,7 +81,7 @@ export async function onRequest(context) {
       const top25 = leaderboard.slice(0, 25);
       
       // Save back to storage
-      await env['CAPTCHA-LEADERBOARD'].put(LEADERBOARD_KEY, JSON.stringify(top25));
+      await env['KV'].put(LEADERBOARD_KEY, JSON.stringify(top25));
       
       return new Response(JSON.stringify({ success: true, leaderboard: top25 }), {
         headers: { 
