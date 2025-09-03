@@ -355,7 +355,10 @@ function CaptchaColumn({ label }: { label: string }) {
     if (next >= sequence.length) {
       setRunning(false);
       setRoundIdx(sequence.length); // finished
-      const beatTheClock = !timeUp && countdown !== null;
+      
+      // More precise timing: beat the clock if elapsed time is under 35 seconds
+      // This avoids race conditions between countdown timer and completion
+      const beatTheClock = elapsed < 35.0;
       
       // Show completion modal
       setCompletionData({ beatTheClock, totalTime: elapsed });
