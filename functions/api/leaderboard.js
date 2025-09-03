@@ -54,6 +54,21 @@ export async function onRequest(context) {
         });
       }
       
+      // Debug: Check if KV binding exists
+      if (!env['CAPTCHA-LEADERBOARD']) {
+        return new Response(JSON.stringify({ 
+          error: 'KV binding not found', 
+          availableBindings: Object.keys(env),
+          debug: 'CAPTCHA-LEADERBOARD binding is missing'
+        }), {
+          status: 500,
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          }
+        });
+      }
+      
       // Get existing leaderboard
       const data = await env['CAPTCHA-LEADERBOARD'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
@@ -75,7 +90,11 @@ export async function onRequest(context) {
         }
       });
     } catch (error) {
-      return new Response(JSON.stringify({ error: 'Failed to save score' }), {
+      return new Response(JSON.stringify({ 
+        error: 'Failed to save score', 
+        details: error.message,
+        stack: error.stack 
+      }), {
         status: 500,
         headers: { 
           'Content-Type': 'application/json',
