@@ -463,7 +463,7 @@ function CaptchaBorder({ onPass, onFail }) {
 // 6) Hold steady (2s ±50ms)
 function CaptchaHold({ onPass, onFail }) {
     const REQUIRED = 2000; // ms
-    const TOLERANCE = 50; // ±50ms
+    const TOLERANCE = 65; // ±65ms
     const [holding, setHolding] = useState(false);
     const [elapsed, setElapsed] = useState(0);
     const tRef = useRef(null);
