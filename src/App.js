@@ -295,7 +295,18 @@ function TimerCard() {
 function CaptchaFrustratedEmojis({ onPass, onFail }) {
     const EMOJIS = ['😡', '😤', '😠'];
     const target = useMemo(() => EMOJIS[Math.floor(Math.random() * EMOJIS.length)], []);
-    const grid = useMemo(() => Array.from({ length: 9 }, () => EMOJIS[Math.floor(Math.random() * EMOJIS.length)]), []);
+    const grid = useMemo(() => {
+        // Ensure at least one of each emoji type is in the grid
+        const grid = [];
+        // First, add one of each emoji type
+        EMOJIS.forEach(emoji => grid.push(emoji));
+        // Then fill the remaining 6 slots randomly
+        for (let i = 3; i < 9; i++) {
+            grid.push(EMOJIS[Math.floor(Math.random() * EMOJIS.length)]);
+        }
+        // Shuffle the grid to randomize positions
+        return grid.sort(() => Math.random() - 0.5);
+    }, []);
     const [picked, setPicked] = useState([]);
     const [feedback, setFeedback] = useState(null);
     const correctIdx = grid.map((e, i) => e === target ? i : -1).filter(i => i >= 0);
