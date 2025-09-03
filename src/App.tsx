@@ -197,7 +197,7 @@ export default function App() {
   useEffect(() => { runSanityTests(); }, []);
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900">
-      <div className="max-w-5xl mx-auto p-6">
+      <div className="max-w-5xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         <header className="flex flex-col items-start gap-2 mb-6">
           <img 
             src="/kasada-logo-full-color-rgb.svg?v=1" 
@@ -208,7 +208,7 @@ export default function App() {
           <h1 className="text-2xl font-semibold tracking-tight">CAPTCHA Race</h1>
         </header>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           <CaptchaColumn label="CAPTCHA Puzzles" />
           <TimerCard />
         </div>
@@ -1064,17 +1064,19 @@ function ResultsAndShare({ brand }: { brand: string }) {
         <CardTitle className="flex items-center gap-2"><Trophy className="w-5 h-5"/> Results & Leaderboard</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="grid md:grid-cols-3 gap-6 items-start">
-          <div className="md:col-span-1 space-y-3">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 items-start">
+          <div className="lg:col-span-1 space-y-3">
             {ready ? (
               <>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <Stat label="CAPTCHA time" value={fmt(g.captcha.seconds)} />
                   <Stat label="Success rate" value={`${g.captcha.attempts ? Math.round(((g.captcha.attempts - g.captcha.failures) / g.captcha.attempts) * 100) : 0}%`} />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 sm:gap-3">
                   <Stat label="Retries" value={String(g.captcha.retries ?? 0)} />
                   <Stat label="Skips" value={String(g.captcha.skips ?? 0)} />
+                </div>
+                <div className="grid grid-cols-1 gap-2 sm:gap-3">
                   <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
                 </div>
                 {g.captcha.beatTheClock !== undefined && (
@@ -1091,7 +1093,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2">
+                <div className="flex flex-col sm:flex-row flex-wrap items-start sm:items-center gap-2">
                   <Button 
                     variant={copySuccess ? "default" : "secondary"} 
                     onClick={copyLink} 
@@ -1113,7 +1115,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
               </div>
             )}
           </div>
-          <div className="md:col-span-2">
+          <div className="lg:col-span-2">
             <Leaderboard rows={rows} />
           </div>
         </div>
@@ -1124,9 +1126,9 @@ function ResultsAndShare({ brand }: { brand: string }) {
 
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="p-4 rounded-xl border bg-white">
-      <div className="text-xs text-slate-500">{label}</div>
-      <div className="text-lg font-semibold">{value}</div>
+    <div className="p-3 sm:p-4 rounded-xl border bg-white min-w-0">
+      <div className="text-xs text-slate-500 truncate">{label}</div>
+      <div className="text-lg font-semibold truncate">{value}</div>
     </div>
   );
 }
