@@ -848,7 +848,16 @@ function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => voi
     return () => cancelAnimationFrame(raf);
   }, [holding]);
 
-  const down = () => { setElapsed(0); tRef.current = performance.now(); setHolding(true); };
+  const down = (e?: React.MouseEvent | React.TouchEvent) => { 
+    // Prevent context menu on mobile
+    if (e) {
+      e.preventDefault();
+    }
+    setElapsed(0); 
+    tRef.current = performance.now(); 
+    setHolding(true); 
+  };
+  
   const up = () => {
     setHolding(false);
     const minTime = REQUIRED - TOLERANCE;
@@ -861,10 +870,24 @@ function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => voi
     }
   };
 
+  // Prevent context menu on long press
+  const preventContextMenu = (e: React.TouchEvent) => {
+    e.preventDefault();
+  };
+
   return (
     <div className="space-y-3">
       <div className="text-sm">Press and hold the button for <b>exactly 2 seconds</b>.</div>
-      <Button onMouseDown={down} onMouseUp={up} onMouseLeave={() => holding && up()} onTouchStart={down} onTouchEnd={up}>
+      <Button 
+        onMouseDown={down} 
+        onMouseUp={up} 
+        onMouseLeave={() => holding && up()} 
+        onTouchStart={down} 
+        onTouchEnd={up}
+        onContextMenu={preventContextMenu}
+        onTouchCancel={up}
+        style={{ touchAction: 'none', userSelect: 'none' }}
+      >
         {holding ? `Holding… ${Math.round(elapsed)}ms` : 'Hold'}
       </Button>
     </div>
