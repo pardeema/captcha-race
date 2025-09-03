@@ -778,39 +778,43 @@ function ResultsAndShare({ brand }: { brand: string }) {
         <CardTitle className="flex items-center gap-2"><Trophy className="w-5 h-5"/> Results & Leaderboard</CardTitle>
       </CardHeader>
       <CardContent>
-        {!ready ? (
-          <div className="text-sm text-slate-500">Complete the CAPTCHA challenges to see results and save to leaderboard.</div>
-        ) : (
-          <div className="grid md:grid-cols-2 gap-8 items-start">
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <Stat label="CAPTCHA time" value={fmt(g.captcha.seconds)} />
-                <Stat label="Success rate" value={`${g.captcha.attempts ? Math.round(((g.captcha.attempts - g.captcha.failures) / g.captcha.attempts) * 100) : 0}%`} />
-              </div>
-              <div className="grid grid-cols-4 gap-3">
-                <Stat label="Retries" value={String(g.captcha.retries ?? 0)} />
-                <Stat label="Rage events" value={String(g.captcha.rage ?? 0)} />
-                <Stat label="Skips" value={String(g.captcha.skips ?? 0)} />
-                <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
-              </div>
+        <div className="grid md:grid-cols-3 gap-6 items-start">
+          <div className="md:col-span-1 space-y-3">
+            {ready ? (
+              <>
+                <div className="grid grid-cols-2 gap-2">
+                  <Stat label="CAPTCHA time" value={fmt(g.captcha.seconds)} />
+                  <Stat label="Success rate" value={`${g.captcha.attempts ? Math.round(((g.captcha.attempts - g.captcha.failures) / g.captcha.attempts) * 100) : 0}%`} />
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <Stat label="Retries" value={String(g.captcha.retries ?? 0)} />
+                  <Stat label="Rage events" value={String(g.captcha.rage ?? 0)} />
+                  <Stat label="Skips" value={String(g.captcha.skips ?? 0)} />
+                  <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
+                </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Input className="max-w-[200px]" value={name} onChange={e => setName(e.target.value)} placeholder="Your name (optional)"/>
-                <Button onClick={save} disabled={hasSubmittedScore}>
-                  {hasSubmittedScore ? "Score Saved" : "Save to leaderboard"}
-                </Button>
-                <Button variant="secondary" onClick={copyLink}><Copy className="w-4 h-4 mr-2"/>Copy share link</Button>
-                <Button variant="outline" onClick={replay} className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300">
-                  <Share2 className="w-4 h-4 mr-2"/>Replay
-                </Button>
-                {saved && <span className="text-emerald-600 text-sm">Saved!</span>}
+                <div className="flex flex-wrap items-center gap-2">
+                  <Input className="max-w-[180px]" value={name} onChange={e => setName(e.target.value)} placeholder="Your name (optional)"/>
+                  <Button onClick={save} disabled={hasSubmittedScore} size="sm">
+                    {hasSubmittedScore ? "Score Saved" : "Save to leaderboard"}
+                  </Button>
+                  <Button variant="secondary" onClick={copyLink} size="sm"><Copy className="w-4 h-4 mr-2"/>Copy share link</Button>
+                  <Button variant="outline" onClick={replay} size="sm" className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300">
+                    <Share2 className="w-4 h-4 mr-2"/>Replay
+                  </Button>
+                  {saved && <span className="text-emerald-600 text-sm">Saved!</span>}
+                </div>
+              </>
+            ) : (
+              <div className="text-sm text-slate-500 p-4 bg-slate-50 rounded-lg">
+                Complete the CAPTCHA challenges to see your results and save to leaderboard.
               </div>
-            </div>
-            <div>
-              <Leaderboard rows={rows} />
-            </div>
+            )}
           </div>
-        )}
+          <div className="md:col-span-2">
+            <Leaderboard rows={rows} />
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
@@ -831,31 +835,31 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
   );
   return (
     <div className="border rounded-xl overflow-hidden">
-      <div className="bg-slate-50 text-xs px-4 py-3 text-slate-600">
+      <div className="bg-slate-50 text-xs px-3 py-2 text-slate-600">
         <div className="flex items-center">
-          <div className="w-12 flex-shrink-0">Rank</div>
-          <div className="w-32 flex-shrink-0">Player</div>
-          <div className="w-16 text-center flex-shrink-0">Time</div>
-          <div className="w-16 text-center flex-shrink-0">Attempts</div>
-          <div className="w-14 text-center flex-shrink-0">Skips</div>
-          <div className="w-16 text-center flex-shrink-0">Success%</div>
-          <div className="w-20 text-center flex-shrink-0">Date</div>
+          <div className="w-10 flex-shrink-0">Rank</div>
+          <div className="w-24 flex-shrink-0">Player</div>
+          <div className="w-14 text-center flex-shrink-0">Time</div>
+          <div className="w-12 text-center flex-shrink-0">Att</div>
+          <div className="w-10 text-center flex-shrink-0">Skip</div>
+          <div className="w-12 text-center flex-shrink-0">%</div>
+          <div className="w-16 text-center flex-shrink-0">Date</div>
         </div>
       </div>
       <div className="divide-y max-h-96 overflow-y-auto">
         {rows.slice(0, 25).map((r, index) => {
           const successRate = r.attempts > 0 ? Math.round(((r.attempts - r.failures) / r.attempts) * 100) : 0;
           return (
-            <div className="flex items-center px-4 py-3 text-sm" key={r.id}>
-              <div className="w-12 flex-shrink-0 font-medium text-slate-600">#{index + 1}</div>
-              <div className="w-32 flex-shrink-0 text-left font-medium truncate" title={r.name || 'Anonymous'}>{r.name || 'Anonymous'}</div>
-              <div className="w-16 font-mono text-center flex-shrink-0">{fmt(r.captchaSeconds)}</div>
-              <div className="w-16 text-center flex-shrink-0">{r.attempts}</div>
-              <div className="w-14 text-center flex-shrink-0">{r.skips}</div>
-              <div className={`w-16 text-center flex-shrink-0 font-medium ${successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+            <div className="flex items-center px-3 py-2 text-sm" key={r.id}>
+              <div className="w-10 flex-shrink-0 font-medium text-slate-600">#{index + 1}</div>
+              <div className="w-24 flex-shrink-0 text-left font-medium truncate" title={r.name || 'Anonymous'}>{r.name || 'Anonymous'}</div>
+              <div className="w-14 font-mono text-center flex-shrink-0">{fmt(r.captchaSeconds)}</div>
+              <div className="w-12 text-center flex-shrink-0">{r.attempts}</div>
+              <div className="w-10 text-center flex-shrink-0">{r.skips}</div>
+              <div className={`w-12 text-center flex-shrink-0 font-medium ${successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {successRate}%
               </div>
-              <div className="w-20 text-xs text-slate-500 text-center flex-shrink-0">{new Date(r.date).toLocaleDateString()}</div>
+              <div className="w-16 text-xs text-slate-500 text-center flex-shrink-0">{new Date(r.date).toLocaleDateString()}</div>
             </div>
           );
         })}
