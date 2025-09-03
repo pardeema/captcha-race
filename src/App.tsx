@@ -267,7 +267,7 @@ function CaptchaColumn({ label }: { label: string }) {
 
   // Timer - use setTimeout to match countdown timer behavior (pauses during alerts)
   useEffect(() => {
-    let timer: number;
+    let timer: ReturnType<typeof setTimeout>;
     if (running) {
       const updateElapsed = () => {
         if (t0.current == null) t0.current = performance.now();
