@@ -837,13 +837,13 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
     <div className="border rounded-xl overflow-hidden">
       <div className="bg-slate-50 text-xs px-3 py-2 text-slate-600">
         <div className="flex items-center">
-          <div className="w-10 flex-shrink-0">Rank</div>
-          <div className="w-24 flex-shrink-0">Player</div>
-          <div className="w-14 text-center flex-shrink-0">Time</div>
-          <div className="w-12 text-center flex-shrink-0">Att</div>
-          <div className="w-10 text-center flex-shrink-0">Skip</div>
-          <div className="w-12 text-center flex-shrink-0">%</div>
-          <div className="w-16 text-center flex-shrink-0">Date</div>
+          <div className="w-12 flex-shrink-0">Rank</div>
+          <div className="w-32 flex-shrink-0">Player</div>
+          <div className="w-16 text-center flex-shrink-0">Time</div>
+          <div className="w-14 text-center flex-shrink-0">Att</div>
+          <div className="w-12 text-center flex-shrink-0">Skip</div>
+          <div className="w-14 text-center flex-shrink-0">%</div>
+          <div className="w-20 text-center flex-shrink-0">Date</div>
         </div>
       </div>
       <div className="divide-y max-h-96 overflow-y-auto">
@@ -851,15 +851,15 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
           const successRate = r.attempts > 0 ? Math.round(((r.attempts - r.failures) / r.attempts) * 100) : 0;
           return (
             <div className="flex items-center px-3 py-2 text-sm" key={r.id}>
-              <div className="w-10 flex-shrink-0 font-medium text-slate-600">#{index + 1}</div>
-              <div className="w-24 flex-shrink-0 text-left font-medium truncate" title={r.name || 'Anonymous'}>{r.name || 'Anonymous'}</div>
-              <div className="w-14 font-mono text-center flex-shrink-0">{fmt(r.captchaSeconds)}</div>
-              <div className="w-12 text-center flex-shrink-0">{r.attempts}</div>
-              <div className="w-10 text-center flex-shrink-0">{r.skips}</div>
-              <div className={`w-12 text-center flex-shrink-0 font-medium ${successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
+              <div className="w-12 flex-shrink-0 font-medium text-slate-600">#{index + 1}</div>
+              <div className="w-32 flex-shrink-0 text-left font-medium truncate" title={r.name || 'Anonymous'}>{r.name || 'Anonymous'}</div>
+              <div className="w-16 font-mono text-center flex-shrink-0">{fmt(r.captchaSeconds)}</div>
+              <div className="w-14 text-center flex-shrink-0">{r.attempts}</div>
+              <div className="w-12 text-center flex-shrink-0">{r.skips}</div>
+              <div className={`w-14 text-center flex-shrink-0 font-medium ${successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {successRate}%
               </div>
-              <div className="w-16 text-xs text-slate-500 text-center flex-shrink-0">{new Date(r.date).toLocaleDateString()}</div>
+              <div className="w-20 text-xs text-slate-500 text-center flex-shrink-0">{new Date(r.date).toLocaleDateString()}</div>
             </div>
           );
         })}
