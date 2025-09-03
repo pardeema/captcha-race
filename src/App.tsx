@@ -110,78 +110,90 @@ function CompletionModal({ onClose, beatTheClock, totalTime, onSave }: {
     }, 1000);
   };
 
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !saved) {
+      handleSave();
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-8 max-w-lg mx-4 shadow-2xl">
-        <div className="text-center space-y-6">
-          <div className="text-6xl">{beatTheClock ? '🏆' : '⏰'}</div>
-          <h2 className="text-2xl font-bold text-slate-900">
-            {beatTheClock ? 'You Beat the Clock!' : 'Time Expired'}
-          </h2>
-          <div className="space-y-4">
-            <p className="text-lg text-slate-600">
-              {beatTheClock 
-                ? `Congratulations! You completed all challenges in ${totalTime.toFixed(1)} seconds.`
-                : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 35-second timer expired.`
-              }
-            </p>
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <p className="text-sm text-amber-800 font-medium mb-2">💡 The Reality Check</p>
-              <p className="text-sm text-amber-700">
-                When time matters—like placing a bet, buying limited merchandise, or securing concert tickets—can you afford to have users stuck in puzzle loops? 
-                Every second of friction costs you conversions and frustrates your customers.
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-2 sm:p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[95vh] sm:max-h-[90vh] flex flex-col">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          <div className="text-center space-y-6">
+            <div className="text-6xl">{beatTheClock ? '🏆' : '⏰'}</div>
+            <h2 className="text-2xl font-bold text-slate-900">
+              {beatTheClock ? 'You Beat the Clock!' : 'Time Expired'}
+            </h2>
+            <div className="space-y-4">
+              <p className="text-lg text-slate-600">
+                {beatTheClock 
+                  ? `Congratulations! You completed all challenges in ${totalTime.toFixed(1)} seconds.`
+                  : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 35-second timer expired.`
+                }
               </p>
-            </div>
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 mb-2">
-                <img 
-                  src="/kasada-logo-mark-black-rgb.svg" 
-                  alt="Kasada" 
-                  className="w-4 h-4"
-                />
-                <p className="text-sm text-green-800 font-medium">The Kasada Solution</p>
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800 font-medium mb-2">💡 The Reality Check</p>
+                <p className="text-sm text-amber-700">
+                  When time matters—like placing a bet, buying limited merchandise, or securing concert tickets—can you afford to have users stuck in puzzle loops? 
+                  Every second of friction costs you conversions and frustrates your customers.
+                </p>
               </div>
-              <p className="text-sm text-green-700 mb-3">
-                Kasada detects humans vs. bots invisibly and seamlessly - no puzzles, no friction, no frustrated users. 
-                Protect your revenue while delivering exceptional customer experiences.
-              </p>
-              <a 
-                href="https://www.kasada.io/get-started/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
-              >
-                Book a Demo →
-              </a>
+              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <img 
+                    src="/kasada-logo-mark-black-rgb.svg" 
+                    alt="Kasada" 
+                    className="w-4 h-4"
+                  />
+                  <p className="text-sm text-green-800 font-medium">The Kasada Solution</p>
+                </div>
+                <p className="text-sm text-green-700 mb-3">
+                  Kasada detects humans vs. bots invisibly and seamlessly - no puzzles, no friction, no frustrated users. 
+                  Protect your revenue while delivering exceptional customer experiences.
+                </p>
+                <a 
+                  href="https://www.kasada.io/get-started/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                >
+                  Book a Demo →
+                </a>
+              </div>
             </div>
           </div>
+        </div>
+        
+        {/* Fixed bottom section with form and buttons */}
+        <div className="border-t bg-white rounded-b-2xl p-4 sm:p-6 space-y-4">
+          <div>
+            <Input 
+              value={name} 
+              onChange={e => setName(e.target.value)} 
+              onKeyPress={handleKeyPress}
+              placeholder="Enter your name (optional)"
+              className="w-full"
+            />
+            <p className="text-xs text-slate-500 mt-1">Press Enter to save</p>
+          </div>
           
-          <div className="space-y-4">
-            <div>
-              <Input 
-                value={name} 
-                onChange={e => setName(e.target.value)} 
-                placeholder="Enter your name (optional)"
-                className="w-full"
-              />
-            </div>
-            
-            <div className="flex gap-3">
-              <Button 
-                onClick={handleSave} 
-                disabled={saved}
-                className="flex-1"
-              >
-                {saved ? "Saved!" : "Save to Leaderboard"}
-              </Button>
-              <Button 
-                onClick={onClose} 
-                variant="secondary" 
-                className="flex-1"
-              >
-                View Results
-              </Button>
-            </div>
+          <div className="flex gap-3">
+            <Button 
+              onClick={handleSave} 
+              disabled={saved}
+              className="flex-1"
+            >
+              {saved ? "Saved!" : "Save to Leaderboard"}
+            </Button>
+            <Button 
+              onClick={onClose} 
+              variant="secondary" 
+              className="flex-1"
+            >
+              View Results
+            </Button>
           </div>
         </div>
       </div>
