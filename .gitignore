@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cloudflare configuration (contains sensitive KV namespace IDs)
+wrangler.toml

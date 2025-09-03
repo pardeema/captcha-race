@@ -1,6 +1,47 @@
-# React + TypeScript + Vite
+# CAPTCHA Race
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A demonstration app comparing traditional CAPTCHA challenges with Kasada's frictionless verification. Users complete frustrating CAPTCHA challenges and then experience Kasada's seamless verification to see the time difference.
+
+## Features
+
+- 🎯 **Multiple CAPTCHA Challenges**: 6 different types of deliberately frustrating challenges
+- ⚡ **Kasada Integration**: Instant, frictionless verification
+- 🏆 **Persistent Leaderboard**: Cloudflare KV storage for cross-visitor leaderboard
+- 📊 **Detailed Metrics**: Tracks time, attempts, failures, skips, and success rates
+- 🎨 **Modern UI**: Built with React, TypeScript, and Tailwind CSS
+
+## Quick Start
+
+1. **Clone and Install**:
+   ```bash
+   git clone <your-repo>
+   cd captcha-race
+   npm install
+   ```
+
+2. **Setup Cloudflare Configuration**:
+   ```bash
+   # Copy the template and update with your KV namespace IDs
+   cp wrangler.toml.template wrangler.toml
+   
+   # Create KV namespace and get IDs
+   wrangler kv namespace create "CAPTCHA-LEADERBOARD"
+   wrangler kv namespace list
+   
+   # Edit wrangler.toml with your actual namespace IDs
+   ```
+
+3. **Run Locally**:
+   ```bash
+   npm run dev
+   ```
+
+4. **Deploy to Cloudflare Pages**:
+   ```bash
+   npm run deploy:cloudflare
+   ```
+
+## Development
 
 Currently, two official plugins are available:
 

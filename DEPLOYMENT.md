@@ -23,21 +23,31 @@ Cloudflare Pages provides serverless functions and KV storage for persistent lea
 
 #### Setup Steps
 
-1. **Update wrangler.toml**:
+1. **Create KV Namespace**:
    ```bash
-   # Replace the KV namespace IDs in wrangler.toml with your actual IDs
-   wrangler kv:namespace list
+   wrangler kv namespace create "CAPTCHA-LEADERBOARD"
    ```
 
-2. **Deploy**:
+2. **Setup wrangler.toml**:
+   ```bash
+   # Copy the template and update with your KV namespace IDs
+   cp wrangler.toml.template wrangler.toml
+   
+   # Get your KV namespace IDs
+   wrangler kv namespace list
+   
+   # Edit wrangler.toml and replace the placeholder IDs with your actual IDs
+   ```
+
+3. **Deploy**:
    ```bash
    npm run deploy:cloudflare
    ```
 
-3. **Configure KV Binding**:
+4. **Configure KV Binding**:
    - Go to your Cloudflare Pages project dashboard
    - Navigate to Settings > Functions
-   - Add KV namespace binding: `LEADERBOARD` → your namespace ID
+   - Add KV namespace binding: `CAPTCHA-LEADERBOARD` → your namespace ID
 
 #### Benefits
 - ✅ Persistent leaderboard storage across all visitors
@@ -194,3 +204,5 @@ For Cloudflare Pages, configure these in your dashboard:
 - Input validation prevents malicious data injection
 - CORS headers are properly configured
 - KV storage provides data isolation per deployment
+- **wrangler.toml is excluded from git** - contains sensitive KV namespace IDs
+- Use `wrangler.toml.template` as a starting point for new deployments

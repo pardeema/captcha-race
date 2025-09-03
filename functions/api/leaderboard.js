@@ -20,7 +20,7 @@ export async function onRequest(context) {
   if (request.method === 'GET') {
     // Get leaderboard data
     try {
-      const data = await env.LEADERBOARD.get(LEADERBOARD_KEY);
+      const data = await env['CAPTCHA-LEADERBOARD'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
       return new Response(JSON.stringify(leaderboard), {
         headers: { 
@@ -55,7 +55,7 @@ export async function onRequest(context) {
       }
       
       // Get existing leaderboard
-      const data = await env.LEADERBOARD.get(LEADERBOARD_KEY);
+      const data = await env['CAPTCHA-LEADERBOARD'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
       
       // Add new score and sort by CAPTCHA time (ascending - fastest first)
@@ -66,7 +66,7 @@ export async function onRequest(context) {
       const top25 = leaderboard.slice(0, 25);
       
       // Save back to storage
-      await env.LEADERBOARD.put(LEADERBOARD_KEY, JSON.stringify(top25));
+      await env['CAPTCHA-LEADERBOARD'].put(LEADERBOARD_KEY, JSON.stringify(top25));
       
       return new Response(JSON.stringify({ success: true, leaderboard: top25 }), {
         headers: { 
