@@ -5,7 +5,6 @@ A demonstration app comparing traditional CAPTCHA challenges with Kasada's frict
 ## Features
 
 - 🎯 **Multiple CAPTCHA Challenges**: 6 different types of deliberately frustrating challenges
-- ⚡ **Kasada Integration**: Instant, frictionless verification
 - 🏆 **Persistent Leaderboard**: Cloudflare KV storage for cross-visitor leaderboard
 - 📊 **Detailed Metrics**: Tracks time, attempts, failures, skips, and success rates
 - 🎨 **Modern UI**: Built with React, TypeScript, and Tailwind CSS
