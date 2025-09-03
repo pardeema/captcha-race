@@ -69,18 +69,35 @@ function FrustrationPopup({ onKeepTrying, onSkip, correctText }) {
     return (_jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50", children: _jsx("div", { className: "bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl", children: _jsxs("div", { className: "text-center space-y-4", children: [_jsx("div", { className: "text-6xl", children: "\uD83D\uDE24" }), _jsx("h2", { className: "text-2xl font-bold text-slate-900", children: "Frustrated?" }), _jsx("p", { className: "text-lg text-slate-600", children: "Imagine this happening to your users" }), correctText && (_jsxs("div", { className: "mt-4 p-4 bg-slate-50 rounded-lg", children: [_jsx("p", { className: "text-sm text-slate-500 mb-2", children: "Correct spelling:" }), _jsx("p", { className: "text-lg font-mono", style: { fontFamily: 'serif' }, children: correctText })] })), _jsxs("div", { className: "flex gap-3", children: [_jsx(Button, { onClick: onKeepTrying, variant: "secondary", className: "flex-1", children: "Keep trying" }), _jsx(Button, { onClick: onSkip, className: "flex-1", children: "Skip" })] })] }) }) }));
 }
 // =============================
+// Completion Modal Component
+// =============================
+function CompletionModal({ onClose, beatTheClock, totalTime, onSave }) {
+    const [name, setName] = useState("");
+    const [saved, setSaved] = useState(false);
+    const handleSave = () => {
+        onSave(name);
+        setSaved(true);
+        setTimeout(() => {
+            onClose();
+        }, 1000);
+    };
+    return (_jsx("div", { className: "fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50", children: _jsx("div", { className: "bg-white rounded-2xl p-8 max-w-lg mx-4 shadow-2xl", children: _jsxs("div", { className: "text-center space-y-6", children: [_jsx("div", { className: "text-6xl", children: beatTheClock ? '🏆' : '⏰' }), _jsx("h2", { className: "text-2xl font-bold text-slate-900", children: beatTheClock ? 'You Beat the Clock!' : 'Time Expired' }), _jsxs("div", { className: "space-y-4", children: [_jsx("p", { className: "text-lg text-slate-600", children: beatTheClock
+                                    ? `Congratulations! You completed all challenges in ${totalTime.toFixed(1)} seconds.`
+                                    : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 30-second timer expired.` }), _jsxs("div", { className: "p-4 bg-amber-50 border border-amber-200 rounded-lg", children: [_jsx("p", { className: "text-sm text-amber-800 font-medium mb-2", children: "\uD83D\uDCA1 The Reality Check" }), _jsx("p", { className: "text-sm text-amber-700", children: "When time matters\u2014like placing a bet, buying limited merchandise, or securing concert tickets\u2014can you afford to have users stuck in puzzle loops? Every second of friction costs you conversions and frustrates your customers." })] })] }), _jsxs("div", { className: "space-y-4", children: [_jsx("div", { children: _jsx(Input, { value: name, onChange: e => setName(e.target.value), placeholder: "Enter your name (optional)", className: "w-full" }) }), _jsxs("div", { className: "flex gap-3", children: [_jsx(Button, { onClick: handleSave, disabled: saved, className: "flex-1", children: saved ? "Saved!" : "Save to Leaderboard" }), _jsx(Button, { onClick: onClose, variant: "secondary", className: "flex-1", children: "View Results" })] })] })] }) }) }));
+}
+// =============================
 // Main App
 // =============================
 export default function App() {
     useEffect(() => { runSanityTests(); }, []);
-    return (_jsx("div", { className: "min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900", children: _jsxs("div", { className: "max-w-5xl mx-auto p-6", children: [_jsxs("header", { className: "flex items-center gap-3 mb-6", children: [_jsx(Shield, { className: "w-7 h-7" }), _jsx("h1", { className: "text-2xl font-semibold tracking-tight", children: "Kasada vs CAPTCHA" })] }), _jsxs("div", { className: "grid md:grid-cols-2 gap-6", children: [_jsx(CaptchaColumn, { label: "CAPTCHA Flow" }), _jsx(KasadaColumn, { label: "Kasada Flow" })] }), _jsx(ResultsAndShare, { brand: "Kasada" })] }) }));
+    return (_jsx("div", { className: "min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900", children: _jsxs("div", { className: "max-w-5xl mx-auto p-6", children: [_jsxs("header", { className: "flex items-center gap-3 mb-6", children: [_jsx(Shield, { className: "w-7 h-7" }), _jsx("h1", { className: "text-2xl font-semibold tracking-tight", children: "CAPTCHA Race" })] }), _jsxs("div", { className: "grid md:grid-cols-2 gap-6", children: [_jsx(CaptchaColumn, { label: "CAPTCHA Puzzles" }), _jsx(TimerCard, {})] }), _jsx(ResultsAndShare, { brand: "Kasada" })] }) }));
 }
 // =============================
 // CAPTCHA Column (multi-round, randomized)
 // =============================
 function CaptchaColumn({ label }) {
     const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-    const roundsParam = Math.min(10, Math.max(5, Number(params.get('rounds') || 7))); // default 7 (between 5–10)
+    const roundsParam = Math.min(10, Math.max(7, Number(params.get('rounds') || 8))); // default 8 (between 7–10)
     const [roundIdx, setRoundIdx] = useState(-1); // -1 = not started
     const [retries, setRetries] = useState(0);
     const [elapsed, setElapsed] = useState(0);
@@ -91,6 +108,10 @@ function CaptchaColumn({ label }) {
     const [showFrustrationPopup, setShowFrustrationPopup] = useState(false);
     const [currentChallengeFailures, setCurrentChallengeFailures] = useState(0);
     const [challengeStats, setChallengeStats] = useState({ attempts: 0, failures: 0 });
+    const [countdown, setCountdown] = useState(null);
+    const [timeUp, setTimeUp] = useState(false);
+    const [showCompletionModal, setShowCompletionModal] = useState(false);
+    const [completionData, setCompletionData] = useState(null);
     // Pool of challenge components
     const pool = [
         (props) => _jsx(CaptchaFrustratedEmojis, { ...props }),
@@ -114,6 +135,20 @@ function CaptchaColumn({ label }) {
         }
         return () => cancelAnimationFrame(raf);
     }, [running]);
+    // Countdown timer
+    useEffect(() => {
+        if (countdown === null)
+            return;
+        if (countdown <= 0) {
+            setTimeUp(true);
+            setCountdown(null);
+            return;
+        }
+        const timer = setTimeout(() => {
+            setCountdown(countdown - 1);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [countdown]);
     // Reset on stop
     useEffect(() => {
         if (!running && roundIdx < 0) {
@@ -122,10 +157,14 @@ function CaptchaColumn({ label }) {
         }
     }, [running, roundIdx]);
     const start = () => {
-        // Build a randomized sequence ensuring no consecutive duplicates
+        // Build a randomized sequence ensuring at least one of each puzzle type
         const seq = [];
-        let lastChallenge = null;
-        for (let i = 0; i < roundsParam; i++) {
+        // First, add one of each puzzle type
+        const shuffledPool = [...pool].sort(() => Math.random() - 0.5);
+        seq.push(...shuffledPool);
+        // Then add remaining puzzles randomly (ensuring no consecutive duplicates)
+        let lastChallenge = shuffledPool[shuffledPool.length - 1];
+        for (let i = pool.length; i < roundsParam; i++) {
             let availableChallenges = pool;
             // If we have a previous challenge, exclude it from the next selection
             if (lastChallenge) {
@@ -141,7 +180,11 @@ function CaptchaColumn({ label }) {
         setRetries(0);
         setElapsed(0);
         setRunning(true);
+        setTimeUp(false);
+        setCountdown(30); // Start 30-second countdown
         t0.current = null;
+        // Dispatch event to start timer in TimerCard
+        window.dispatchEvent(new CustomEvent('gameStart'));
     };
     const onFail = () => {
         setRetries(r => r + 1);
@@ -157,6 +200,10 @@ function CaptchaColumn({ label }) {
         if (next >= sequence.length) {
             setRunning(false);
             setRoundIdx(sequence.length); // finished
+            const beatTheClock = !timeUp && countdown !== null;
+            // Show completion modal
+            setCompletionData({ beatTheClock, totalTime: elapsed });
+            setShowCompletionModal(true);
             // persist metrics immediately when CAPTCHA is completed
             window.KASADA_GAME = {
                 ...window.KASADA_GAME,
@@ -166,7 +213,9 @@ function CaptchaColumn({ label }) {
                     rage,
                     attempts: challengeStats.attempts + 1,
                     failures: challengeStats.failures,
-                    skips: window.KASADA_GAME?.captcha?.skips || 0
+                    skips: window.KASADA_GAME?.captcha?.skips || 0,
+                    beatTheClock,
+                    timeUp
                 }
             };
             // Trigger a custom event to notify the leaderboard component
@@ -177,7 +226,9 @@ function CaptchaColumn({ label }) {
                     rage,
                     attempts: challengeStats.attempts + 1,
                     failures: challengeStats.failures,
-                    skips: window.KASADA_GAME?.captcha?.skips || 0
+                    skips: window.KASADA_GAME?.captcha?.skips || 0,
+                    beatTheClock,
+                    timeUp
                 }
             }));
         }
@@ -203,29 +254,62 @@ function CaptchaColumn({ label }) {
         };
         onPass(); // Move to next challenge
     };
+    const handleCloseCompletionModal = () => {
+        setShowCompletionModal(false);
+        setCompletionData(null);
+    };
     const current = roundIdx >= 0 && roundIdx < sequence.length ? sequence[roundIdx] : null;
-    return (_jsxs(_Fragment, { children: [_jsxs(Card, { className: "rounded-2xl shadow-md", children: [_jsx(CardHeader, { children: _jsxs(CardTitle, { className: "flex items-center justify-between", children: [_jsx("span", { children: label }), _jsxs("span", { className: "text-sm font-normal text-slate-500 flex items-center gap-2", children: [_jsx(TimerReset, { className: "w-4 h-4" }), fmt(elapsed)] })] }) }), _jsxs(CardContent, { children: [roundIdx < 0 && (_jsxs("div", { className: "space-y-4", children: [_jsxs("p", { className: "text-sm text-slate-600", children: ["Complete ", _jsx("b", { children: roundsParam }), " deliberately frustrating challenges."] }), _jsx(Button, { onClick: start, children: "Start challenges" }), _jsx("div", { className: "text-xs text-slate-500", children: "Rage clicks are tracked automatically." })] })), running && current && (React.createElement(current, { onFail, onPass })), (!running && roundIdx >= sequence.length && sequence.length > 0) && (_jsxs("div", { className: "text-sm text-emerald-700 flex items-center gap-2", children: [_jsx(CheckCircle2, { className: "w-4 h-4" }), " All ", sequence.length, " challenges completed."] })), (roundIdx >= 0) && (_jsxs("div", { className: "mt-4 text-xs text-slate-500", children: ["Round ", Math.min(roundIdx + 1, sequence.length), " / ", sequence.length || roundsParam, " \u00B7 Retries: ", retries, " \u00B7 Rage events: ", rage] }))] })] }), showFrustrationPopup && (_jsx(FrustrationPopup, { onKeepTrying: handleKeepTrying, onSkip: handleSkip, correctText: current === CaptchaWord ? CaptchaWord.correctText : undefined }))] }));
+    return (_jsxs(_Fragment, { children: [_jsxs(Card, { className: "rounded-2xl shadow-md", children: [_jsx(CardHeader, { children: _jsxs(CardTitle, { className: "flex items-center justify-between", children: [_jsx("span", { children: label }), _jsxs("span", { className: "text-sm font-normal text-slate-500 flex items-center gap-2", children: [_jsx(TimerReset, { className: "w-4 h-4" }), fmt(elapsed)] })] }) }), _jsxs(CardContent, { children: [roundIdx < 0 && !timeUp && (_jsxs("div", { className: "space-y-4", children: [_jsxs("p", { className: "text-sm text-slate-600", children: ["Complete ", _jsx("b", { children: roundsParam }), " deliberately frustrating challenges."] }), _jsx("p", { className: "text-sm text-amber-600 font-medium", children: "\u23F0 You have 30 seconds to complete all challenges!" }), _jsx(Button, { onClick: start, children: "Start challenges" }), _jsx("div", { className: "text-xs text-slate-500", children: "Rage clicks are tracked automatically." })] })), running && current && (_jsx("div", { className: "space-y-4", children: React.createElement(current, { onFail, onPass }) })), (!running && roundIdx >= sequence.length && sequence.length > 0) && (_jsxs("div", { className: "text-sm text-emerald-700 flex items-center gap-2", children: [_jsx(CheckCircle2, { className: "w-4 h-4" }), "All ", sequence.length, " challenges completed!", timeUp ? (_jsx("span", { className: "text-amber-600 ml-2", children: "(Time expired during completion)" })) : (_jsx("span", { className: "text-emerald-600 ml-2", children: "(Beat the clock!)" }))] })), (roundIdx >= 0 && !timeUp) && (_jsxs("div", { className: "mt-4 text-xs text-slate-500", children: ["Round ", Math.min(roundIdx + 1, sequence.length), " / ", sequence.length || roundsParam, " \u00B7 Retries: ", retries, " \u00B7 Rage events: ", rage] }))] })] }), showFrustrationPopup && (_jsx(FrustrationPopup, { onKeepTrying: handleKeepTrying, onSkip: handleSkip, correctText: current === CaptchaWord ? CaptchaWord.correctText : undefined })), showCompletionModal && completionData && (_jsx(CompletionModal, { onClose: handleCloseCompletionModal, beatTheClock: completionData.beatTheClock, totalTime: completionData.totalTime, onSave: (name) => {
+                    // Dispatch event to save the score with the name
+                    window.dispatchEvent(new CustomEvent('saveScore', {
+                        detail: { name }
+                    }));
+                } }))] }));
 }
 // =============================
-// Kasada Column
+// Timer Card Component
 // =============================
-function KasadaColumn({ label }) {
-    const [done, setDone] = useState(false);
-    const [elapsed, setElapsed] = useState(0);
-    const t = useRef(null);
-    const start = () => {
-        t.current = performance.now();
-        setTimeout(() => {
-            const secs = (performance.now() - (t.current || performance.now())) / 1000;
-            setElapsed(secs);
-            setDone(true);
-            window.KASADA_GAME = {
-                ...window.KASADA_GAME,
-                kasada: { seconds: secs }
-            };
-        }, 300);
-    };
-    return (_jsxs(Card, { className: "rounded-2xl shadow-md", children: [_jsx(CardHeader, { children: _jsxs(CardTitle, { className: "flex items-center justify-between", children: [_jsx("span", { children: label }), _jsxs("span", { className: "text-sm font-normal text-slate-500 flex items-center gap-2", children: [_jsx(Zap, { className: "w-4 h-4" }), done ? fmt(elapsed) : '—'] })] }) }), _jsx(CardContent, { children: !done ? (_jsxs("div", { className: "space-y-4", children: [_jsx("p", { className: "text-sm", children: "Frictionless verification. One click." }), _jsx(Button, { onClick: start, children: "Continue" })] })) : (_jsxs("div", { className: "flex items-center gap-3 text-emerald-600", children: [_jsx(CheckCircle2, { className: "w-5 h-5" }), _jsx("span", { className: "text-sm", children: "Verified silently. You're in." })] })) })] }));
+function TimerCard() {
+    const [countdown, setCountdown] = useState(null);
+    const [timeUp, setTimeUp] = useState(false);
+    // Listen for game start and completion events
+    useEffect(() => {
+        const handleGameStart = () => {
+            setCountdown(30);
+            setTimeUp(false);
+        };
+        const handleGameComplete = () => {
+            // Keep the final countdown state
+        };
+        const handleGameReset = () => {
+            setCountdown(null);
+            setTimeUp(false);
+        };
+        // Listen for custom events from CaptchaColumn
+        window.addEventListener('gameStart', handleGameStart);
+        window.addEventListener('captchaCompleted', handleGameComplete);
+        window.addEventListener('gameReset', handleGameReset);
+        return () => {
+            window.removeEventListener('gameStart', handleGameStart);
+            window.removeEventListener('captchaCompleted', handleGameComplete);
+            window.removeEventListener('gameReset', handleGameReset);
+        };
+    }, []);
+    // Countdown timer effect
+    useEffect(() => {
+        if (countdown === null)
+            return;
+        if (countdown <= 0) {
+            setTimeUp(true);
+            setCountdown(null);
+            return;
+        }
+        const timer = setTimeout(() => {
+            setCountdown(countdown - 1);
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [countdown]);
+    return (_jsxs(Card, { className: "rounded-2xl shadow-md", children: [_jsx(CardHeader, { children: _jsxs(CardTitle, { className: "flex items-center gap-2", children: [_jsx(Zap, { className: "w-5 h-5" }), "Limited Time Event"] }) }), _jsx(CardContent, { children: _jsxs("div", { className: "space-y-4", children: [_jsx("div", { className: "text-center", children: countdown !== null ? (_jsxs(_Fragment, { children: [_jsxs("div", { className: `text-4xl font-bold ${countdown <= 10 ? 'text-red-600' : countdown <= 15 ? 'text-amber-600' : 'text-slate-700'}`, children: [countdown, "s"] }), _jsx("p", { className: "text-sm text-slate-600 mt-2", children: "Time remaining" })] })) : timeUp ? (_jsxs(_Fragment, { children: [_jsx("div", { className: "text-4xl font-bold text-red-600", children: "\u23F0" }), _jsx("p", { className: "text-sm text-red-600 mt-2", children: "Time's up!" })] })) : (_jsxs(_Fragment, { children: [_jsx("div", { className: "text-4xl font-bold text-slate-400", children: "30s" }), _jsx("p", { className: "text-sm text-slate-500 mt-2", children: "Ready to start" })] })) }), _jsx("div", { className: "text-center space-y-2", children: _jsx("p", { className: "text-sm text-slate-600", children: "Beat the 30-second clock to secure your spot in this limited event." }) })] }) })] }));
 }
 // =============================
 // Challenges
@@ -253,7 +337,7 @@ function CaptchaFrustratedEmojis({ onPass, onFail }) {
             onFail();
         }
     };
-    return (_jsxs("div", { className: "space-y-3", children: [_jsxs("div", { className: "text-sm", children: ["Select all tiles with ", _jsx("span", { className: "font-medium", children: "the frustrated emoji" }), "."] }), _jsx("div", { className: "grid grid-cols-3 gap-2", children: grid.map((emoji, idx) => (_jsx("button", { className: `aspect-square rounded-lg border flex items-center justify-center text-3xl ${picked.includes(idx) ? 'bg-slate-200' : 'bg-white'}`, onClick: () => setPicked(p => p.includes(idx) ? p.filter(i => i !== idx) : [...p, idx]), children: emoji }, idx))) }), _jsxs("div", { className: "flex gap-2 items-center", children: [_jsx(Button, { onClick: submit, children: "Verify" }), feedback && _jsx("div", { className: "text-xs text-rose-600", children: feedback })] })] }));
+    return (_jsxs("div", { className: "space-y-3", children: [_jsxs("div", { className: "text-sm", children: ["Select all tiles with ", _jsx("span", { className: "font-medium", children: "the frustrated emoji" }), "."] }), _jsx("div", { className: "grid grid-cols-3 gap-1 max-w-xs mx-auto", children: grid.map((emoji, idx) => (_jsx("button", { className: `aspect-square rounded-lg border flex items-center justify-center text-xl ${picked.includes(idx) ? 'bg-slate-200' : 'bg-white'}`, onClick: () => setPicked(p => p.includes(idx) ? p.filter(i => i !== idx) : [...p, idx]), children: emoji }, idx))) }), _jsxs("div", { className: "flex gap-2 items-center", children: [_jsx(Button, { onClick: submit, children: "Verify" }), feedback && _jsx("div", { className: "text-xs text-rose-600", children: feedback })] })] }));
 }
 // 2) Slider — must be within ±1°; show submitted value on error.
 function CaptchaSlider({ onPass, onFail }) {
@@ -441,8 +525,15 @@ function ResultsAndShare({ brand }) {
             setReady(false);
             setHasSubmittedScore(false);
         };
+        const handleSaveScore = (event) => {
+            const name = event.detail.name;
+            setName(name);
+            // Save will be triggered after name is set
+            setTimeout(() => save(), 100);
+        };
         window.addEventListener('captchaCompleted', handleCaptchaCompleted);
         window.addEventListener('gameReset', handleGameReset);
+        window.addEventListener('saveScore', handleSaveScore);
         // Also check if already completed on mount
         const g = window.KASADA_GAME;
         if (g?.captcha?.seconds) {
@@ -451,15 +542,17 @@ function ResultsAndShare({ brand }) {
         return () => {
             window.removeEventListener('captchaCompleted', handleCaptchaCompleted);
             window.removeEventListener('gameReset', handleGameReset);
+            window.removeEventListener('saveScore', handleSaveScore);
         };
     }, []);
     useEffect(() => {
         const g = window.KASADA_GAME;
-        if (!g?.captcha?.seconds || !g?.kasada?.seconds)
+        if (!g?.captcha?.seconds)
             return;
-        const savedSecs = Math.max(0, g.captcha.seconds - g.kasada.seconds);
-        const pct = g.captcha.seconds > 0 ? (savedSecs / g.captcha.seconds) * 100 : 0;
-        setDelta({ saved: savedSecs, percent: pct });
+        // For time-limited scenarios, we show how much time was "wasted" on CAPTCHAs
+        const wastedSecs = g.captcha.seconds;
+        const pct = 100; // 100% of time was spent on CAPTCHAs
+        setDelta({ saved: wastedSecs, percent: pct });
     }, [rows, ready]);
     const save = async () => {
         const g = window.KASADA_GAME;
@@ -469,12 +562,13 @@ function ResultsAndShare({ brand }) {
             id: uid(),
             name: name || 'Anonymous',
             captchaSeconds: g.captcha.seconds,
-            kasadaSeconds: g.kasada?.seconds ?? 0,
+            kasadaSeconds: 0, // No longer used
             retries: g.captcha.retries ?? 0,
             rageClicks: g.captcha.rage ?? 0,
             attempts: g.captcha.attempts ?? 0,
             failures: g.captcha.failures ?? 0,
             skips: g.captcha.skips ?? 0,
+            beatTheClock: g.captcha.beatTheClock ?? false,
             date: new Date().toISOString(),
         };
         // Mark as submitted to prevent duplicates
@@ -524,8 +618,6 @@ function ResultsAndShare({ brand }) {
         const g = window.KASADA_GAME;
         if (g?.captcha?.seconds)
             u.searchParams.set('last_captcha', String(g.captcha.seconds.toFixed(1)));
-        if (g?.kasada?.seconds)
-            u.searchParams.set('last_kasada', String(g.kasada.seconds.toFixed(1)));
         try {
             await navigator.clipboard.writeText(u.toString());
         }
@@ -551,7 +643,9 @@ function ResultsAndShare({ brand }) {
         loadLeaderboard();
     }, []);
     const g = window.KASADA_GAME;
-    return (_jsxs(Card, { className: "rounded-2xl shadow-md mt-6", children: [_jsx(CardHeader, { children: _jsxs(CardTitle, { className: "flex items-center gap-2", children: [_jsx(Trophy, { className: "w-5 h-5" }), " Results & Leaderboard"] }) }), _jsx(CardContent, { children: !ready ? (_jsx("div", { className: "text-sm text-slate-500", children: "Complete the CAPTCHA challenges to see results and save to leaderboard." })) : (_jsxs("div", { className: "grid md:grid-cols-3 gap-6 items-start", children: [_jsxs("div", { className: "md:col-span-2 space-y-4", children: [_jsxs("div", { className: "grid grid-cols-3 gap-3", children: [_jsx(Stat, { label: "CAPTCHA time", value: fmt(g.captcha.seconds) }), _jsx(Stat, { label: `${brand} time`, value: g.kasada?.seconds ? fmt(g.kasada.seconds) : "—" }), _jsx(Stat, { label: "Time saved", value: g.kasada?.seconds ? fmt(Math.max(0, g.captcha.seconds - g.kasada.seconds)) : "—" })] }), _jsxs("div", { className: "grid grid-cols-3 gap-3", children: [_jsx(Stat, { label: "Retries", value: String(g.captcha.retries ?? 0) }), _jsx(Stat, { label: "Rage events", value: String(g.captcha.rage ?? 0) }), _jsx(Stat, { label: "Skips", value: String(g.captcha.skips ?? 0) })] }), _jsxs("div", { className: "grid grid-cols-3 gap-3", children: [_jsx(Stat, { label: "Total attempts", value: String(g.captcha.attempts ?? 0) }), _jsx(Stat, { label: "Failed attempts", value: String(g.captcha.failures ?? 0) }), _jsx(Stat, { label: "Success rate", value: `${g.captcha.attempts ? Math.round(((g.captcha.attempts - g.captcha.failures) / g.captcha.attempts) * 100) : 0}%` })] }), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsx(Input, { className: "max-w-[200px]", value: name, onChange: e => setName(e.target.value), placeholder: "Your name (optional)" }), _jsx(Button, { onClick: save, disabled: hasSubmittedScore, children: hasSubmittedScore ? "Score Saved" : "Save to leaderboard" }), _jsxs(Button, { variant: "secondary", onClick: copyLink, children: [_jsx(Copy, { className: "w-4 h-4 mr-2" }), "Copy share link"] }), _jsxs(Button, { variant: "outline", onClick: replay, className: "bg-white hover:bg-gray-50 text-gray-700 border-gray-300", children: [_jsx(Share2, { className: "w-4 h-4 mr-2" }), "Replay"] }), saved && _jsx("span", { className: "text-emerald-600 text-sm", children: "Saved!" })] })] }), _jsx("div", { className: "md:col-span-1", children: _jsx(Leaderboard, { rows: rows }) })] })) })] }));
+    return (_jsxs(Card, { className: "rounded-2xl shadow-md mt-6", children: [_jsx(CardHeader, { children: _jsxs(CardTitle, { className: "flex items-center gap-2", children: [_jsx(Trophy, { className: "w-5 h-5" }), " Results & Leaderboard"] }) }), _jsx(CardContent, { children: _jsxs("div", { className: "grid md:grid-cols-3 gap-6 items-start", children: [_jsx("div", { className: "md:col-span-1 space-y-3", children: ready ? (_jsxs(_Fragment, { children: [_jsxs("div", { className: "grid grid-cols-2 gap-2", children: [_jsx(Stat, { label: "CAPTCHA time", value: fmt(g.captcha.seconds) }), _jsx(Stat, { label: "Success rate", value: `${g.captcha.attempts ? Math.round(((g.captcha.attempts - g.captcha.failures) / g.captcha.attempts) * 100) : 0}%` })] }), _jsxs("div", { className: "grid grid-cols-2 gap-2", children: [_jsx(Stat, { label: "Retries", value: String(g.captcha.retries ?? 0) }), _jsx(Stat, { label: "Rage events", value: String(g.captcha.rage ?? 0) }), _jsx(Stat, { label: "Skips", value: String(g.captcha.skips ?? 0) }), _jsx(Stat, { label: "Total attempts", value: String(g.captcha.attempts ?? 0) })] }), g.captcha.beatTheClock !== undefined && (_jsxs("div", { className: `p-3 border rounded-lg ${g.captcha.beatTheClock ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`, children: [_jsx("p", { className: `text-sm font-medium ${g.captcha.beatTheClock ? 'text-green-700' : 'text-amber-700'}`, children: g.captcha.beatTheClock ? '🏆 Beat the Clock!' : '⏰ Time Expired' }), _jsx("p", { className: `text-xs ${g.captcha.beatTheClock ? 'text-green-600' : 'text-amber-600'}`, children: g.captcha.beatTheClock
+                                                    ? 'Completed all challenges within 30 seconds!'
+                                                    : 'Completed all challenges but exceeded 30 seconds.' })] })), _jsxs("div", { className: "flex flex-wrap items-center gap-2", children: [_jsxs(Button, { variant: "secondary", onClick: copyLink, size: "sm", children: [_jsx(Copy, { className: "w-4 h-4 mr-2" }), "Copy share link"] }), _jsxs(Button, { variant: "outline", onClick: replay, size: "sm", className: "bg-white hover:bg-gray-50 text-gray-700 border-gray-300", children: [_jsx(Share2, { className: "w-4 h-4 mr-2" }), "Replay"] }), hasSubmittedScore && _jsx("span", { className: "text-emerald-600 text-sm", children: "Score saved to leaderboard!" })] })] })) : (_jsx("div", { className: "text-sm text-slate-500 p-4 bg-slate-50 rounded-lg", children: "Complete the CAPTCHA challenges to see your results and save to leaderboard." })) }), _jsx("div", { className: "md:col-span-2", children: _jsx(Leaderboard, { rows: rows }) })] }) })] }));
 }
 function Stat({ label, value }) {
     return (_jsxs("div", { className: "p-4 rounded-xl border bg-white", children: [_jsx("div", { className: "text-xs text-slate-500", children: label }), _jsx("div", { className: "text-lg font-semibold", children: value })] }));
@@ -559,8 +653,8 @@ function Stat({ label, value }) {
 function Leaderboard({ rows }) {
     if (!rows.length)
         return (_jsx("div", { className: "text-sm text-slate-500", children: "No entries yet. Be the first!" }));
-    return (_jsxs("div", { className: "border rounded-xl overflow-hidden", children: [_jsxs("div", { className: "grid grid-cols-7 bg-slate-50 text-xs px-3 py-2 text-slate-600", children: [_jsx("div", { children: "Rank" }), _jsx("div", { children: "Player" }), _jsx("div", { children: "Time" }), _jsx("div", { children: "Attempts" }), _jsx("div", { children: "Skips" }), _jsx("div", { children: "Success%" }), _jsx("div", { children: "Date" })] }), _jsx("div", { className: "divide-y max-h-96 overflow-y-auto", children: rows.slice(0, 25).map((r, index) => {
+    return (_jsxs("div", { className: "border rounded-xl overflow-hidden", children: [_jsx("div", { className: "bg-slate-50 text-xs px-3 py-2 text-slate-600", children: _jsxs("div", { className: "flex items-center", children: [_jsx("div", { className: "w-12 flex-shrink-0", children: "Rank" }), _jsx("div", { className: "w-32 flex-shrink-0", children: "Player" }), _jsx("div", { className: "w-16 text-center flex-shrink-0", children: "Time" }), _jsx("div", { className: "w-14 text-center flex-shrink-0", children: "Att" }), _jsx("div", { className: "w-12 text-center flex-shrink-0", children: "Skip" }), _jsx("div", { className: "w-14 text-center flex-shrink-0", children: "%" }), _jsx("div", { className: "w-16 text-center flex-shrink-0", children: "Clock" }), _jsx("div", { className: "w-20 text-center flex-shrink-0", children: "Date" })] }) }), _jsx("div", { className: "divide-y max-h-96 overflow-y-auto", children: rows.slice(0, 25).map((r, index) => {
                     const successRate = r.attempts > 0 ? Math.round(((r.attempts - r.failures) / r.attempts) * 100) : 0;
-                    return (_jsxs("div", { className: "grid grid-cols-7 px-3 py-2 text-sm", children: [_jsxs("div", { className: "font-medium text-slate-600", children: ["#", index + 1] }), _jsx("div", { className: "truncate", children: r.name }), _jsx("div", { className: "font-mono", children: fmt(r.captchaSeconds) }), _jsx("div", { children: r.attempts }), _jsx("div", { children: r.skips }), _jsxs("div", { className: successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600', children: [successRate, "%"] }), _jsx("div", { className: "text-xs text-slate-500", children: new Date(r.date).toLocaleDateString() })] }, r.id));
+                    return (_jsxs("div", { className: "flex items-center px-3 py-2 text-sm", children: [_jsxs("div", { className: "w-12 flex-shrink-0 font-medium text-slate-600", children: ["#", index + 1] }), _jsx("div", { className: "w-32 flex-shrink-0 text-left font-medium truncate", title: r.name || 'Anonymous', children: r.name || 'Anonymous' }), _jsx("div", { className: "w-16 font-mono text-center flex-shrink-0", children: fmt(r.captchaSeconds) }), _jsx("div", { className: "w-14 text-center flex-shrink-0", children: r.attempts }), _jsx("div", { className: "w-12 text-center flex-shrink-0", children: r.skips }), _jsxs("div", { className: `w-14 text-center flex-shrink-0 font-medium ${successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`, children: [successRate, "%"] }), _jsx("div", { className: "w-16 text-center flex-shrink-0", children: r.beatTheClock !== undefined ? (_jsx("span", { className: `text-xs font-medium ${r.beatTheClock ? 'text-green-600' : 'text-amber-600'}`, children: r.beatTheClock ? '🏆' : '⏰' })) : (_jsx("span", { className: "text-xs text-slate-400", children: "\u2014" })) }), _jsx("div", { className: "w-20 text-xs text-slate-500 text-center flex-shrink-0", children: new Date(r.date).toLocaleDateString() })] }, r.id));
                 }) })] }));
 }
