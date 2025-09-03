@@ -23,11 +23,11 @@ export async function onRequest(context) {
       // Debug: Check available bindings
       const availableBindings = Object.keys(env);
       
-      if (!env['KV']) {
+      if (!env['CAPTCHA-LEADERBOARD']) {
         return new Response(JSON.stringify({ 
           error: 'KV binding not found in GET', 
           availableBindings: availableBindings,
-          debug: 'KV binding is missing in GET request'
+          debug: 'CAPTCHA-LEADERBOARD binding is missing in GET request'
         }), {
           headers: { 
             'Content-Type': 'application/json',
@@ -36,7 +36,7 @@ export async function onRequest(context) {
         });
       }
       
-      const data = await env['KV'].get(LEADERBOARD_KEY);
+      const data = await env['CAPTCHA-LEADERBOARD'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
       return new Response(JSON.stringify(leaderboard), {
         headers: { 
@@ -75,11 +75,11 @@ export async function onRequest(context) {
       }
       
       // Debug: Check if KV binding exists
-      if (!env['KV']) {
+      if (!env['CAPTCHA-LEADERBOARD']) {
         return new Response(JSON.stringify({ 
           error: 'KV binding not found', 
           availableBindings: Object.keys(env),
-          debug: 'KV binding is missing'
+          debug: 'CAPTCHA-LEADERBOARD binding is missing'
         }), {
           status: 500,
           headers: { 
@@ -90,7 +90,7 @@ export async function onRequest(context) {
       }
       
       // Get existing leaderboard
-      const data = await env['KV'].get(LEADERBOARD_KEY);
+      const data = await env['CAPTCHA-LEADERBOARD'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
       
       // Add new score and sort by CAPTCHA time (ascending - fastest first)
@@ -101,7 +101,7 @@ export async function onRequest(context) {
       const top25 = leaderboard.slice(0, 25);
       
       // Save back to storage
-      await env['KV'].put(LEADERBOARD_KEY, JSON.stringify(top25));
+      await env['CAPTCHA-LEADERBOARD'].put(LEADERBOARD_KEY, JSON.stringify(top25));
       
       return new Response(JSON.stringify({ success: true, leaderboard: top25 }), {
         headers: { 
