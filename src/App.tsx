@@ -109,7 +109,23 @@ function FrustrationPopup({ onKeepTrying, onSkip, correctText }: { onKeepTrying:
 // Completion Modal Component
 // =============================
 
-function CompletionModal({ onClose, beatTheClock, totalTime }: { onClose: () => void; beatTheClock: boolean; totalTime: number }) {
+function CompletionModal({ onClose, beatTheClock, totalTime, onSave }: { 
+  onClose: () => void; 
+  beatTheClock: boolean; 
+  totalTime: number;
+  onSave: (name: string) => void;
+}) {
+  const [name, setName] = useState("");
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    onSave(name);
+    setSaved(true);
+    setTimeout(() => {
+      onClose();
+    }, 1000);
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-2xl p-8 max-w-lg mx-4 shadow-2xl">
@@ -133,9 +149,34 @@ function CompletionModal({ onClose, beatTheClock, totalTime }: { onClose: () => 
               </p>
             </div>
           </div>
-          <Button onClick={onClose} className="w-full">
-            View Results & Leaderboard
-          </Button>
+          
+          <div className="space-y-4">
+            <div>
+              <Input 
+                value={name} 
+                onChange={e => setName(e.target.value)} 
+                placeholder="Enter your name (optional)"
+                className="w-full"
+              />
+            </div>
+            
+            <div className="flex gap-3">
+              <Button 
+                onClick={handleSave} 
+                disabled={saved}
+                className="flex-1"
+              >
+                {saved ? "Saved!" : "Save to Leaderboard"}
+              </Button>
+              <Button 
+                onClick={onClose} 
+                variant="secondary" 
+                className="flex-1"
+              >
+                View Results
+              </Button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -411,6 +452,12 @@ function CaptchaColumn({ label }: { label: string }) {
           onClose={handleCloseCompletionModal}
           beatTheClock={completionData.beatTheClock}
           totalTime={completionData.totalTime}
+          onSave={(name) => {
+            // Dispatch event to save the score with the name
+            window.dispatchEvent(new CustomEvent('saveScore', { 
+              detail: { name } 
+            }));
+          }}
         />
       )}
     </>
@@ -504,9 +551,6 @@ function TimerCard() {
           <div className="text-center space-y-2">
             <p className="text-sm text-slate-600">
               Beat the 30-second clock to secure your spot in this limited event.
-            </p>
-            <p className="text-xs text-slate-500">
-              When time matters—like placing a bet, buying limited merchandise, or securing concert tickets—every second counts.
             </p>
           </div>
         </div>
@@ -810,8 +854,16 @@ function ResultsAndShare({ brand }: { brand: string }) {
       setHasSubmittedScore(false);
     };
 
+    const handleSaveScore = (event: CustomEvent) => {
+      const name = event.detail.name;
+      setName(name);
+      // Save will be triggered after name is set
+      setTimeout(() => save(), 100);
+    };
+
     window.addEventListener('captchaCompleted', handleCaptchaCompleted);
     window.addEventListener('gameReset', handleGameReset);
+    window.addEventListener('saveScore', handleSaveScore as EventListener);
     
     // Also check if already completed on mount
     const g = (window as any).KASADA_GAME;
@@ -822,6 +874,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
     return () => {
       window.removeEventListener('captchaCompleted', handleCaptchaCompleted);
       window.removeEventListener('gameReset', handleGameReset);
+      window.removeEventListener('saveScore', handleSaveScore as EventListener);
     };
   }, []);
 
@@ -964,15 +1017,11 @@ function ResultsAndShare({ brand }: { brand: string }) {
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Input className="max-w-[180px]" value={name} onChange={e => setName(e.target.value)} placeholder="Your name (optional)"/>
-                  <Button onClick={save} disabled={hasSubmittedScore} size="sm">
-                    {hasSubmittedScore ? "Score Saved" : "Save to leaderboard"}
-                  </Button>
                   <Button variant="secondary" onClick={copyLink} size="sm"><Copy className="w-4 h-4 mr-2"/>Copy share link</Button>
                   <Button variant="outline" onClick={replay} size="sm" className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300">
                     <Share2 className="w-4 h-4 mr-2"/>Replay
                   </Button>
-                  {saved && <span className="text-emerald-600 text-sm">Saved!</span>}
+                  {hasSubmittedScore && <span className="text-emerald-600 text-sm">Score saved to leaderboard!</span>}
                 </div>
               </>
             ) : (
