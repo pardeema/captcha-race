@@ -209,7 +209,7 @@ function CaptchaColumn({ label }: { label: string }) {
     setCurrentChallengeFailures(f => f + 1);
     setChallengeStats(s => ({...s, attempts: s.attempts + 1, failures: s.failures + 1}));
     
-    if (currentChallengeFailures >= 4) { // 5th failure (0-indexed)
+    if (currentChallengeFailures >= 2) { // 3rd failure (0-indexed)
       setShowFrustrationPopup(true);
     }
   };
