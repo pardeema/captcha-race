@@ -832,9 +832,9 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
   return (
     <div className="border rounded-xl overflow-hidden">
       <div className="bg-slate-50 text-xs px-4 py-3 text-slate-600">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center">
           <div className="w-12 flex-shrink-0">Rank</div>
-          <div className="flex-1 min-w-0">Player</div>
+          <div className="w-32 flex-shrink-0">Player</div>
           <div className="w-16 text-center flex-shrink-0">Time</div>
           <div className="w-16 text-center flex-shrink-0">Attempts</div>
           <div className="w-14 text-center flex-shrink-0">Skips</div>
@@ -846,9 +846,9 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
         {rows.slice(0, 25).map((r, index) => {
           const successRate = r.attempts > 0 ? Math.round(((r.attempts - r.failures) / r.attempts) * 100) : 0;
           return (
-            <div className="flex items-center gap-2 px-4 py-3 text-sm" key={r.id}>
+            <div className="flex items-center px-4 py-3 text-sm" key={r.id}>
               <div className="w-12 flex-shrink-0 font-medium text-slate-600">#{index + 1}</div>
-              <div className="flex-1 min-w-0 text-left font-medium truncate" title={r.name || 'Anonymous'}>{r.name || 'Anonymous'}</div>
+              <div className="w-32 flex-shrink-0 text-left font-medium truncate" title={r.name || 'Anonymous'}>{r.name || 'Anonymous'}</div>
               <div className="w-16 font-mono text-center flex-shrink-0">{fmt(r.captchaSeconds)}</div>
               <div className="w-16 text-center flex-shrink-0">{r.attempts}</div>
               <div className="w-14 text-center flex-shrink-0">{r.skips}</div>
