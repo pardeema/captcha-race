@@ -616,7 +616,7 @@ function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => voi
     if (elapsed >= minTime && elapsed <= maxTime) {
       onPass();
     } else {
-      alert(`Hold for exactly 2 seconds (±50ms). You held ${Math.round(elapsed)}ms. `);
+      alert(`Hold for exactly 2 seconds (within a small margin).`);
       onFail();
     }
   };
