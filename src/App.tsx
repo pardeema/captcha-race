@@ -241,15 +241,29 @@ function CaptchaColumn({ label }: { label: string }) {
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionData, setCompletionData] = useState<{beatTheClock: boolean, totalTime: number} | null>(null);
 
-  // Pool of challenge components
-  const pool: React.ComponentType<any>[] = [
-    (props:any)=> <CaptchaFrustratedEmojis {...props} />,
-    (props:any)=> <CaptchaSlider {...props} />,
-    (props:any)=> <CaptchaWord {...props} />,
-    (props:any)=> <CaptchaDragPiece {...props} />,
-    (props:any)=> <CaptchaBorder {...props} />,
-    (props:any)=> <CaptchaHold {...props} />,
-  ];
+  // Detect mobile devices
+  const isMobile = useMemo(() => {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           window.innerWidth <= 768;
+  }, []);
+
+  // Pool of challenge components (exclude drag puzzle on mobile)
+  const pool: React.ComponentType<any>[] = useMemo(() => {
+    const basePool = [
+      (props:any)=> <CaptchaFrustratedEmojis {...props} />,
+      (props:any)=> <CaptchaSlider {...props} />,
+      (props:any)=> <CaptchaWord {...props} />,
+      (props:any)=> <CaptchaBorder {...props} />,
+      (props:any)=> <CaptchaHold {...props} />,
+    ];
+    
+    // Only include drag puzzle on desktop
+    if (!isMobile) {
+      basePool.push((props:any)=> <CaptchaDragPiece {...props} />);
+    }
+    
+    return basePool;
+  }, [isMobile]);
 
   // Timer
   useEffect(() => {
@@ -677,16 +691,26 @@ function CaptchaDragPiece({ onPass, onFail }: { onPass: () => void; onFail: () =
   useEffect(() => {
     const move = (e: MouseEvent | TouchEvent) => {
       if (!dragging || !containerRef.current) return;
+      
+      // Prevent default touch behavior to avoid scrolling conflicts
+      if ((e as TouchEvent).touches) {
+        e.preventDefault();
+      }
+      
       const rect = containerRef.current.getBoundingClientRect();
       const clientX = (e as TouchEvent).touches ? (e as TouchEvent).touches[0].clientX : (e as MouseEvent).clientX;
       const clientY = (e as TouchEvent).touches ? (e as TouchEvent).touches[0].clientY : (e as MouseEvent).clientY;
       setPos({ x: Math.max(0, Math.min(280, clientX - rect.left - 16)), y: Math.max(0, Math.min(120, clientY - rect.top - 16)) });
     };
+    
     const up = () => setDragging(false);
+    
+    // Use passive: false for touch events to allow preventDefault
     window.addEventListener('mousemove', move as any);
     window.addEventListener('mouseup', up);
-    window.addEventListener('touchmove', move as any);
+    window.addEventListener('touchmove', move as any, { passive: false });
     window.addEventListener('touchend', up);
+    
     return () => {
       window.removeEventListener('mousemove', move as any);
       window.removeEventListener('mouseup', up);
