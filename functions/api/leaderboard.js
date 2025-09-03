@@ -113,7 +113,9 @@ export async function onRequest(context) {
       return new Response(JSON.stringify({ 
         error: 'Failed to save score', 
         details: error.message,
-        stack: error.stack 
+        stack: error.stack,
+        availableBindings: Object.keys(env),
+        kvBindingExists: !!env['CAPTCHA-LEADERBOARD']
       }), {
         status: 500,
         headers: { 
