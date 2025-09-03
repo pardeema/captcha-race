@@ -18,6 +18,7 @@ type ScoreRow = {
   rageClicks: number;
   attempts: number;
   failures: number;
+  skips: number;
   date: string;
 };
 
@@ -177,9 +178,24 @@ function CaptchaColumn({ label }: { label: string }) {
   }, [running, roundIdx]);
 
   const start = () => {
-    // Build a randomized sequence of length roundsParam
+    // Build a randomized sequence ensuring no consecutive duplicates
     const seq: React.ComponentType<any>[] = [];
-    for (let i=0; i<roundsParam; i++) seq.push(pool[Math.floor(Math.random()*pool.length)]);
+    let lastChallenge: React.ComponentType<any> | null = null;
+    
+    for (let i = 0; i < roundsParam; i++) {
+      let availableChallenges = pool;
+      
+      // If we have a previous challenge, exclude it from the next selection
+      if (lastChallenge) {
+        availableChallenges = pool.filter(challenge => challenge !== lastChallenge);
+      }
+      
+      // Select a random challenge from available ones
+      const selectedChallenge = availableChallenges[Math.floor(Math.random() * availableChallenges.length)];
+      seq.push(selectedChallenge);
+      lastChallenge = selectedChallenge;
+    }
+    
     setSequence(seq);
     setRoundIdx(0);
     setRetries(0);
@@ -204,11 +220,29 @@ function CaptchaColumn({ label }: { label: string }) {
     if (next >= sequence.length) {
       setRunning(false);
       setRoundIdx(sequence.length); // finished
-      // persist metrics
+      // persist metrics immediately when CAPTCHA is completed
       (window as any).KASADA_GAME = {
         ...(window as any).KASADA_GAME,
-        captcha: { seconds: elapsed, retries, rage, attempts: challengeStats.attempts + 1, failures: challengeStats.failures }
+        captcha: { 
+          seconds: elapsed, 
+          retries, 
+          rage, 
+          attempts: challengeStats.attempts + 1, 
+          failures: challengeStats.failures,
+          skips: (window as any).KASADA_GAME?.captcha?.skips || 0
+        }
       };
+      // Trigger a custom event to notify the leaderboard component
+      window.dispatchEvent(new CustomEvent('captchaCompleted', { 
+        detail: { 
+          seconds: elapsed, 
+          retries, 
+          rage, 
+          attempts: challengeStats.attempts + 1, 
+          failures: challengeStats.failures,
+          skips: (window as any).KASADA_GAME?.captcha?.skips || 0
+        } 
+      }));
     } else {
       setRoundIdx(next);
       setCurrentChallengeFailures(0); // Reset failures for next challenge
@@ -223,6 +257,14 @@ function CaptchaColumn({ label }: { label: string }) {
   const handleSkip = () => {
     setShowFrustrationPopup(false);
     setCurrentChallengeFailures(0);
+    // Track the skip
+    (window as any).KASADA_GAME = {
+      ...(window as any).KASADA_GAME,
+      captcha: {
+        ...(window as any).KASADA_GAME?.captcha,
+        skips: ((window as any).KASADA_GAME?.captcha?.skips || 0) + 1
+      }
+    };
     onPass(); // Move to next challenge
   };
 
@@ -568,14 +610,13 @@ function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => voi
 
   const down = () => { setElapsed(0); tRef.current = performance.now(); setHolding(true); };
   const up = () => {
-    const ms = elapsed;
     setHolding(false);
     const minTime = REQUIRED - TOLERANCE;
     const maxTime = REQUIRED + TOLERANCE;
-    if (ms >= minTime && ms <= maxTime) {
+    if (elapsed >= minTime && elapsed <= maxTime) {
       onPass();
     } else {
-      alert(`Hold for exactly 2 seconds (±50ms). You held ${Math.round(ms)}ms. `);
+      alert(`Hold for exactly 2 seconds (±50ms). You held ${Math.round(elapsed)}ms. `);
       onFail();
     }
   };
@@ -599,6 +640,34 @@ function ResultsAndShare({ brand }: { brand: string }) {
   const [rows, setRows] = useState<ScoreRow[]>(() => loadScores());
   const [saved, setSaved] = useState(false);
   const [delta, setDelta] = useState<{saved: number, percent: number}>({ saved: 0, percent: 0 });
+  const [ready, setReady] = useState(false);
+  const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
+
+  // Listen for CAPTCHA completion event
+  useEffect(() => {
+    const handleCaptchaCompleted = () => {
+      setReady(true);
+    };
+
+    const handleGameReset = () => {
+      setReady(false);
+      setHasSubmittedScore(false);
+    };
+
+    window.addEventListener('captchaCompleted', handleCaptchaCompleted);
+    window.addEventListener('gameReset', handleGameReset);
+    
+    // Also check if already completed on mount
+    const g = (window as any).KASADA_GAME;
+    if (g?.captcha?.seconds) {
+      setReady(true);
+    }
+
+    return () => {
+      window.removeEventListener('captchaCompleted', handleCaptchaCompleted);
+      window.removeEventListener('gameReset', handleGameReset);
+    };
+  }, []);
 
   useEffect(() => {
     const g = (window as any).KASADA_GAME;
@@ -606,24 +675,71 @@ function ResultsAndShare({ brand }: { brand: string }) {
     const savedSecs = Math.max(0, g.captcha.seconds - g.kasada.seconds);
     const pct = g.captcha.seconds > 0 ? (savedSecs / g.captcha.seconds) * 100 : 0;
     setDelta({ saved: savedSecs, percent: pct });
-  }, [rows]);
+  }, [rows, ready]);
 
-  const save = () => {
+  const save = async () => {
     const g = (window as any).KASADA_GAME;
-    if (!g?.captcha?.seconds || !g?.kasada?.seconds) return;
+    if (!g?.captcha?.seconds || hasSubmittedScore) return; // Only require CAPTCHA completion and prevent duplicates
+    
     const row: ScoreRow = {
       id: uid(),
       name: name || 'Anonymous',
       captchaSeconds: g.captcha.seconds,
-      kasadaSeconds: g.kasada.seconds,
+      kasadaSeconds: g.kasada?.seconds ?? 0,
       retries: g.captcha.retries ?? 0,
       rageClicks: g.captcha.rage ?? 0,
       attempts: g.captcha.attempts ?? 0,
       failures: g.captcha.failures ?? 0,
+      skips: g.captcha.skips ?? 0,
       date: new Date().toISOString(),
     };
+    
+    // Mark as submitted to prevent duplicates
+    setHasSubmittedScore(true);
+    
+    // Save locally first
     const next = [row, ...rows].sort((a,b) => a.captchaSeconds - b.captchaSeconds);
-    setRows(next); saveScores(next); setSaved(true); setTimeout(() => setSaved(false), 1200);
+    setRows(next); 
+    saveScores(next); 
+    setSaved(true); 
+    setTimeout(() => setSaved(false), 1200);
+    
+    // Try to save to API (Cloudflare Pages Functions)
+    try {
+      const response = await fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(row),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        if (result.leaderboard) {
+          setRows(result.leaderboard);
+          saveScores(result.leaderboard);
+        }
+      }
+    } catch (error) {
+      console.log('API save failed, using localStorage only:', error);
+    }
+  };
+
+  const replay = () => {
+    // Reset the game state
+    (window as any).KASADA_GAME = {};
+    setName("");
+    setSaved(false);
+    
+    // Dispatch reset event to notify other components
+    window.dispatchEvent(new CustomEvent('gameReset'));
+    
+    // Scroll to top and reload the page to reset everything
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setTimeout(() => {
+      window.location.reload();
+    }, 500);
   };
 
   const copyLink = async () => {
@@ -634,8 +750,27 @@ function ResultsAndShare({ brand }: { brand: string }) {
     try { await navigator.clipboard.writeText(u.toString()); } catch {}
   };
 
+  // Load leaderboard from API on mount
+  useEffect(() => {
+    const loadLeaderboard = async () => {
+      try {
+        const response = await fetch('/api/leaderboard');
+        if (response.ok) {
+          const apiRows = await response.json();
+          if (apiRows.length > 0) {
+            setRows(apiRows);
+            saveScores(apiRows);
+          }
+        }
+      } catch (error) {
+        console.log('API load failed, using localStorage only:', error);
+      }
+    };
+    
+    loadLeaderboard();
+  }, []);
+
   const g = (window as any).KASADA_GAME;
-  const ready = Boolean(g?.captcha?.seconds && g?.kasada?.seconds);
 
   return (
     <Card className="rounded-2xl shadow-md mt-6">
@@ -644,19 +779,19 @@ function ResultsAndShare({ brand }: { brand: string }) {
       </CardHeader>
       <CardContent>
         {!ready ? (
-          <div className="text-sm text-slate-500">Complete both columns to see results.</div>
+          <div className="text-sm text-slate-500">Complete the CAPTCHA challenges to see results and save to leaderboard.</div>
         ) : (
           <div className="grid md:grid-cols-3 gap-6 items-start">
             <div className="md:col-span-2 space-y-4">
               <div className="grid grid-cols-3 gap-3">
                 <Stat label="CAPTCHA time" value={fmt(g.captcha.seconds)} />
-                <Stat label={`${brand} time`} value={fmt(g.kasada.seconds)} />
-                <Stat label="Time saved" value={fmt(Math.max(0, g.captcha.seconds - g.kasada.seconds))} />
+                <Stat label={`${brand} time`} value={g.kasada?.seconds ? fmt(g.kasada.seconds) : "—"} />
+                <Stat label="Time saved" value={g.kasada?.seconds ? fmt(Math.max(0, g.captcha.seconds - g.kasada.seconds)) : "—"} />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <Stat label="Retries" value={String(g.captcha.retries ?? 0)} />
                 <Stat label="Rage events" value={String(g.captcha.rage ?? 0)} />
-                <Stat label="CX improvement" value={`${Math.round(delta.percent)}% faster`} />
+                <Stat label="Skips" value={String(g.captcha.skips ?? 0)} />
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
@@ -666,9 +801,13 @@ function ResultsAndShare({ brand }: { brand: string }) {
 
               <div className="flex flex-wrap items-center gap-2">
                 <Input className="max-w-[200px]" value={name} onChange={e => setName(e.target.value)} placeholder="Your name (optional)"/>
-                <Button onClick={save}>Save to leaderboard</Button>
+                <Button onClick={save} disabled={hasSubmittedScore}>
+                  {hasSubmittedScore ? "Score Saved" : "Save to leaderboard"}
+                </Button>
                 <Button variant="secondary" onClick={copyLink}><Copy className="w-4 h-4 mr-2"/>Copy share link</Button>
-                <Button variant="ghost" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}><Share2 className="w-4 h-4 mr-2"/>Replay</Button>
+                <Button variant="outline" onClick={replay} className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300">
+                  <Share2 className="w-4 h-4 mr-2"/>Replay
+                </Button>
                 {saved && <span className="text-emerald-600 text-sm">Saved!</span>}
               </div>
             </div>
@@ -697,23 +836,32 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
   );
   return (
     <div className="border rounded-xl overflow-hidden">
-      <div className="grid grid-cols-5 bg-slate-50 text-xs px-3 py-2 text-slate-600">
+      <div className="grid grid-cols-7 bg-slate-50 text-xs px-3 py-2 text-slate-600">
+        <div>Rank</div>
         <div>Player</div>
-        <div>CAPTCHA</div>
-        <div>Retries</div>
-        <div>Rage</div>
+        <div>Time</div>
+        <div>Attempts</div>
+        <div>Skips</div>
+        <div>Success%</div>
         <div>Date</div>
       </div>
-      <div className="divide-y">
-        {rows.slice(0, 10).map(r => (
-          <div className="grid grid-cols-5 px-3 py-2 text-sm" key={r.id}>
-            <div className="truncate">{r.name}</div>
-            <div>{fmt(r.captchaSeconds)}</div>
-            <div>{r.retries}</div>
-            <div>{r.rageClicks}</div>
-            <div className="text-xs text-slate-500">{new Date(r.date).toLocaleDateString()}</div>
-          </div>
-        ))}
+      <div className="divide-y max-h-96 overflow-y-auto">
+        {rows.slice(0, 25).map((r, index) => {
+          const successRate = r.attempts > 0 ? Math.round(((r.attempts - r.failures) / r.attempts) * 100) : 0;
+          return (
+            <div className="grid grid-cols-7 px-3 py-2 text-sm" key={r.id}>
+              <div className="font-medium text-slate-600">#{index + 1}</div>
+              <div className="truncate">{r.name}</div>
+              <div className="font-mono">{fmt(r.captchaSeconds)}</div>
+              <div>{r.attempts}</div>
+              <div>{r.skips}</div>
+              <div className={successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}>
+                {successRate}%
+              </div>
+              <div className="text-xs text-slate-500">{new Date(r.date).toLocaleDateString()}</div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
