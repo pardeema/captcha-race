@@ -1019,10 +1019,9 @@ function ResultsAndShare({ brand }: { brand: string }) {
     }, 500);
   };
 
-  const copyLink = async () => {
+    const copyLink = async () => {
     const u = new URL(window.location.href);
     const g = (window as any).KASADA_GAME;
-    if (g?.captcha?.seconds) u.searchParams.set('last_captcha', String(g.captcha.seconds.toFixed(1)));
     
     // Create dynamic share text based on result
     const beatTheClock = g?.captcha?.beatTheClock ?? false;
@@ -1031,7 +1030,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
       : `I lost the race against the clock in CAPTCHA race, can you do better? ${u.toString()}`;
     
     try { 
-      await navigator.clipboard.writeText(shareText);
+      await navigator.clipboard.writeText(shareText); 
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch {}
