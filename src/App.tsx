@@ -905,6 +905,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
   const [delta, setDelta] = useState<{saved: number, percent: number}>({ saved: 0, percent: 0 });
   const [ready, setReady] = useState(false);
   const [hasSubmittedScore, setHasSubmittedScore] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Listen for CAPTCHA completion event
   useEffect(() => {
@@ -1026,7 +1027,11 @@ function ResultsAndShare({ brand }: { brand: string }) {
       ? `I beat the CAPTCHA clock -- can you? ${u.toString()}`
       : `I lost the race against the clock in CAPTCHA race, can you do better? ${u.toString()}`;
     
-    try { await navigator.clipboard.writeText(shareText); } catch {}
+    try { 
+      await navigator.clipboard.writeText(shareText);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch {}
   };
 
   // Load leaderboard from API on mount
@@ -1085,7 +1090,15 @@ function ResultsAndShare({ brand }: { brand: string }) {
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <Button variant="secondary" onClick={copyLink} size="sm"><Copy className="w-4 h-4 mr-2"/>Copy share link</Button>
+                  <Button 
+                    variant={copySuccess ? "default" : "secondary"} 
+                    onClick={copyLink} 
+                    size="sm"
+                    className={copySuccess ? "bg-green-600 hover:bg-green-700 text-white" : ""}
+                  >
+                    {copySuccess ? <CheckCircle2 className="w-4 h-4 mr-2"/> : <Copy className="w-4 h-4 mr-2"/>}
+                    {copySuccess ? "Copied!" : "Copy share link"}
+                  </Button>
                   <Button variant="outline" onClick={replay} size="sm" className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300">
                     <Share2 className="w-4 h-4 mr-2"/>Replay
                   </Button>
