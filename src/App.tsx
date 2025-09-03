@@ -19,6 +19,7 @@ type ScoreRow = {
   attempts: number;
   failures: number;
   skips: number;
+  beatTheClock?: boolean;
   date: string;
 };
 
@@ -105,6 +106,43 @@ function FrustrationPopup({ onKeepTrying, onSkip, correctText }: { onKeepTrying:
 }
 
 // =============================
+// Completion Modal Component
+// =============================
+
+function CompletionModal({ onClose, beatTheClock, totalTime }: { onClose: () => void; beatTheClock: boolean; totalTime: number }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-8 max-w-lg mx-4 shadow-2xl">
+        <div className="text-center space-y-6">
+          <div className="text-6xl">{beatTheClock ? '🏆' : '⏰'}</div>
+          <h2 className="text-2xl font-bold text-slate-900">
+            {beatTheClock ? 'You Beat the Clock!' : 'Time Expired'}
+          </h2>
+          <div className="space-y-4">
+            <p className="text-lg text-slate-600">
+              {beatTheClock 
+                ? `Congratulations! You completed all challenges in ${totalTime.toFixed(1)} seconds.`
+                : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 30-second timer expired.`
+              }
+            </p>
+            <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-800 font-medium mb-2">💡 The Reality Check</p>
+              <p className="text-sm text-amber-700">
+                When time matters—like placing a bet, buying limited merchandise, or securing concert tickets—can you afford to have users stuck in puzzle loops? 
+                Every second of friction costs you conversions and frustrates your customers.
+              </p>
+            </div>
+          </div>
+          <Button onClick={onClose} className="w-full">
+            View Results & Leaderboard
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================
 // Main App
 // =============================
 
@@ -146,6 +184,8 @@ function CaptchaColumn({ label }: { label: string }) {
   const [challengeStats, setChallengeStats] = useState<{attempts: number, failures: number}>({attempts: 0, failures: 0});
   const [countdown, setCountdown] = useState<number | null>(null);
   const [timeUp, setTimeUp] = useState(false);
+  const [showCompletionModal, setShowCompletionModal] = useState(false);
+  const [completionData, setCompletionData] = useState<{beatTheClock: boolean, totalTime: number} | null>(null);
 
   // Pool of challenge components
   const pool: React.ComponentType<any>[] = [
@@ -177,7 +217,6 @@ function CaptchaColumn({ label }: { label: string }) {
     
     if (countdown <= 0) {
       setTimeUp(true);
-      setRunning(false);
       setCountdown(null);
       return;
     }
@@ -245,6 +284,12 @@ function CaptchaColumn({ label }: { label: string }) {
     if (next >= sequence.length) {
       setRunning(false);
       setRoundIdx(sequence.length); // finished
+      const beatTheClock = !timeUp && countdown !== null;
+      
+      // Show completion modal
+      setCompletionData({ beatTheClock, totalTime: elapsed });
+      setShowCompletionModal(true);
+      
       // persist metrics immediately when CAPTCHA is completed
       (window as any).KASADA_GAME = {
         ...(window as any).KASADA_GAME,
@@ -255,7 +300,8 @@ function CaptchaColumn({ label }: { label: string }) {
           attempts: challengeStats.attempts + 1, 
           failures: challengeStats.failures,
           skips: (window as any).KASADA_GAME?.captcha?.skips || 0,
-          completedInTime: !timeUp
+          beatTheClock,
+          timeUp
         }
       };
       // Trigger a custom event to notify the leaderboard component
@@ -266,7 +312,9 @@ function CaptchaColumn({ label }: { label: string }) {
           rage, 
           attempts: challengeStats.attempts + 1, 
           failures: challengeStats.failures,
-          skips: (window as any).KASADA_GAME?.captcha?.skips || 0
+          skips: (window as any).KASADA_GAME?.captcha?.skips || 0,
+          beatTheClock,
+          timeUp
         } 
       }));
     } else {
@@ -294,11 +342,16 @@ function CaptchaColumn({ label }: { label: string }) {
     onPass(); // Move to next challenge
   };
 
+  const handleCloseCompletionModal = () => {
+    setShowCompletionModal(false);
+    setCompletionData(null);
+  };
+
   const current = roundIdx >= 0 && roundIdx < sequence.length ? sequence[roundIdx] : null;
 
   return (
     <>
-      <Card className="rounded-2xl shadow-md">
+      <Card className="rounded-2xl shadow-md max-w-2xl mx-auto">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{label}</span>
@@ -315,42 +368,39 @@ function CaptchaColumn({ label }: { label: string }) {
             </div>
           )}
 
-          {timeUp && (
-            <div className="space-y-4">
-              <div className="text-center">
-                <div className="text-6xl mb-4">⏰</div>
-                <h3 className="text-xl font-bold text-red-600 mb-2">Time's Up!</h3>
-                <p className="text-sm text-slate-600 mb-4">
-                  You didn't complete all challenges in time. This is exactly what happens to users when CAPTCHAs slow them down during time-sensitive actions.
-                </p>
-                <Button onClick={() => {
-                  setTimeUp(false);
-                  setRoundIdx(-1);
-                  setSequence([]);
-                  setRetries(0);
-                  setElapsed(0);
-                  setRunning(false);
-                  setCurrentChallengeFailures(0);
-                  setChallengeStats({attempts: 0, failures: 0});
-                }}>Try Again</Button>
-              </div>
-            </div>
-          )}
 
-          {running && current && countdown !== null && (
+
+          {running && current && (
             <div className="space-y-4">
               <div className="text-center">
-                <div className={`text-3xl font-bold ${countdown <= 10 ? 'text-red-600' : countdown <= 15 ? 'text-amber-600' : 'text-slate-700'}`}>
-                  {countdown}s
-                </div>
-                <p className="text-sm text-slate-600">Time remaining</p>
+                {countdown !== null ? (
+                  <>
+                    <div className={`text-3xl font-bold ${countdown <= 10 ? 'text-red-600' : countdown <= 15 ? 'text-amber-600' : 'text-slate-700'}`}>
+                      {countdown}s
+                    </div>
+                    <p className="text-sm text-slate-600">Time remaining</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-3xl font-bold text-red-600">⏰</div>
+                    <p className="text-sm text-red-600">Time's up! Keep going...</p>
+                  </>
+                )}
               </div>
               {React.createElement(current, { onFail, onPass })}
             </div>
           )}
 
-          {(!running && roundIdx >= sequence.length && sequence.length>0 && !timeUp) && (
-            <div className="text-sm text-emerald-700 flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> All {sequence.length} challenges completed in time!</div>
+          {(!running && roundIdx >= sequence.length && sequence.length>0) && (
+            <div className="text-sm text-emerald-700 flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4"/> 
+              All {sequence.length} challenges completed!
+              {timeUp ? (
+                <span className="text-amber-600 ml-2">(Time expired during completion)</span>
+              ) : (
+                <span className="text-emerald-600 ml-2">(Beat the clock!)</span>
+              )}
+            </div>
           )}
 
           {(roundIdx >= 0 && !timeUp) && (
@@ -363,6 +413,13 @@ function CaptchaColumn({ label }: { label: string }) {
           onKeepTrying={handleKeepTrying}
           onSkip={handleSkip}
           correctText={current === CaptchaWord ? (CaptchaWord as any).correctText : undefined}
+        />
+      )}
+      {showCompletionModal && completionData && (
+        <CompletionModal 
+          onClose={handleCloseCompletionModal}
+          beatTheClock={completionData.beatTheClock}
+          totalTime={completionData.totalTime}
         />
       )}
     </>
@@ -704,6 +761,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
       attempts: g.captcha.attempts ?? 0,
       failures: g.captcha.failures ?? 0,
       skips: g.captcha.skips ?? 0,
+      beatTheClock: g.captcha.beatTheClock ?? false,
       date: new Date().toISOString(),
     };
     
@@ -804,10 +862,17 @@ function ResultsAndShare({ brand }: { brand: string }) {
                   <Stat label="Skips" value={String(g.captcha.skips ?? 0)} />
                   <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
                 </div>
-                {g.captcha.completedInTime === false && (
-                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
-                    <p className="text-sm text-red-700 font-medium">⏰ Time's Up!</p>
-                    <p className="text-xs text-red-600">You didn't complete all challenges in 30 seconds.</p>
+                {g.captcha.beatTheClock !== undefined && (
+                  <div className={`p-3 border rounded-lg ${g.captcha.beatTheClock ? 'bg-green-50 border-green-200' : 'bg-amber-50 border-amber-200'}`}>
+                    <p className={`text-sm font-medium ${g.captcha.beatTheClock ? 'text-green-700' : 'text-amber-700'}`}>
+                      {g.captcha.beatTheClock ? '🏆 Beat the Clock!' : '⏰ Time Expired'}
+                    </p>
+                    <p className={`text-xs ${g.captcha.beatTheClock ? 'text-green-600' : 'text-amber-600'}`}>
+                      {g.captcha.beatTheClock 
+                        ? 'Completed all challenges within 30 seconds!' 
+                        : 'Completed all challenges but exceeded 30 seconds.'
+                      }
+                    </p>
                   </div>
                 )}
 
@@ -861,6 +926,7 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
           <div className="w-14 text-center flex-shrink-0">Att</div>
           <div className="w-12 text-center flex-shrink-0">Skip</div>
           <div className="w-14 text-center flex-shrink-0">%</div>
+          <div className="w-16 text-center flex-shrink-0">Clock</div>
           <div className="w-20 text-center flex-shrink-0">Date</div>
         </div>
       </div>
@@ -876,6 +942,15 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
               <div className="w-12 text-center flex-shrink-0">{r.skips}</div>
               <div className={`w-14 text-center flex-shrink-0 font-medium ${successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {successRate}%
+              </div>
+              <div className="w-16 text-center flex-shrink-0">
+                {r.beatTheClock !== undefined ? (
+                  <span className={`text-xs font-medium ${r.beatTheClock ? 'text-green-600' : 'text-amber-600'}`}>
+                    {r.beatTheClock ? '🏆' : '⏰'}
+                  </span>
+                ) : (
+                  <span className="text-xs text-slate-400">—</span>
+                )}
               </div>
               <div className="w-20 text-xs text-slate-500 text-center flex-shrink-0">{new Date(r.date).toLocaleDateString()}</div>
             </div>
