@@ -236,7 +236,6 @@ function CaptchaColumn({ label }: { label: string }) {
   const [showFrustrationPopup, setShowFrustrationPopup] = useState(false);
   const [currentChallengeFailures, setCurrentChallengeFailures] = useState(0);
   const [challengeStats, setChallengeStats] = useState<{attempts: number, failures: number}>({attempts: 0, failures: 0});
-  const [countdown, setCountdown] = useState<number | null>(null);
   const [timeUp, setTimeUp] = useState(false);
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [completionData, setCompletionData] = useState<{beatTheClock: boolean, totalTime: number} | null>(null);
@@ -265,36 +264,31 @@ function CaptchaColumn({ label }: { label: string }) {
     return basePool;
   }, [isMobile]);
 
-  // Timer - use setTimeout to match countdown timer behavior (pauses during alerts)
+  // Single timer that counts up - used for both display and final measurement
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
     if (running) {
       const updateElapsed = () => {
         if (t0.current == null) t0.current = performance.now();
-        setElapsed(((performance.now() - t0.current) / 1000));
+        const currentElapsed = ((performance.now() - t0.current) / 1000);
+        setElapsed(currentElapsed);
+        
+        // Check if time is up (35 seconds)
+        if (currentElapsed >= 35.0 && !timeUp) {
+          setTimeUp(true);
+        }
+        
+        // Dispatch elapsed time update to TimerCard
+        window.dispatchEvent(new CustomEvent('elapsedUpdate', { 
+          detail: { elapsed: currentElapsed, timeUp: currentElapsed >= 35.0 } 
+        }));
+        
         timer = setTimeout(updateElapsed, 100); // Update every 100ms for smooth display
       };
       updateElapsed();
     }
     return () => clearTimeout(timer);
-  }, [running]);
-
-  // Countdown timer
-  useEffect(() => {
-    if (countdown === null) return;
-    
-    if (countdown <= 0) {
-      setTimeUp(true);
-      setCountdown(null);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [countdown]);
+  }, [running, timeUp]);
 
   // Reset on stop
   useEffect(() => {
@@ -332,7 +326,6 @@ function CaptchaColumn({ label }: { label: string }) {
     setElapsed(0);
     setRunning(true);
     setTimeUp(false);
-    setCountdown(35); // Start 35-second countdown
     t0.current = null;
     
     // Dispatch event to start timer in TimerCard
@@ -493,53 +486,46 @@ function CaptchaColumn({ label }: { label: string }) {
 // =============================
 
 function TimerCard() {
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [elapsed, setElapsed] = useState(0);
   const [timeUp, setTimeUp] = useState(false);
+  const [gameRunning, setGameRunning] = useState(false);
 
-  // Listen for game start and completion events
+  // Listen for game events and elapsed time updates
   useEffect(() => {
     const handleGameStart = () => {
-      setCountdown(35);
+      setElapsed(0);
       setTimeUp(false);
+      setGameRunning(true);
     };
 
     const handleGameComplete = () => {
-      // Keep the final countdown state
+      setGameRunning(false);
     };
 
     const handleGameReset = () => {
-      setCountdown(null);
+      setElapsed(0);
       setTimeUp(false);
+      setGameRunning(false);
+    };
+
+    const handleElapsedUpdate = (event: CustomEvent) => {
+      setElapsed(event.detail.elapsed);
+      setTimeUp(event.detail.timeUp);
     };
 
     // Listen for custom events from CaptchaColumn
     window.addEventListener('gameStart', handleGameStart);
     window.addEventListener('captchaCompleted', handleGameComplete);
     window.addEventListener('gameReset', handleGameReset);
+    window.addEventListener('elapsedUpdate', handleElapsedUpdate as EventListener);
 
     return () => {
       window.removeEventListener('gameStart', handleGameStart);
       window.removeEventListener('captchaCompleted', handleGameComplete);
       window.removeEventListener('gameReset', handleGameReset);
+      window.removeEventListener('elapsedUpdate', handleElapsedUpdate as EventListener);
     };
   }, []);
-
-  // Countdown timer effect
-  useEffect(() => {
-    if (countdown === null) return;
-    
-    if (countdown <= 0) {
-      setTimeUp(true);
-      setCountdown(null);
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      setCountdown(countdown - 1);
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [countdown]);
 
   return (
     <Card className="rounded-2xl shadow-md">
@@ -552,10 +538,10 @@ function TimerCard() {
       <CardContent>
         <div className="space-y-4">
           <div className="text-center">
-            {countdown !== null ? (
+            {gameRunning ? (
               <>
-                <div className={`text-4xl font-bold ${countdown <= 10 ? 'text-red-600' : countdown <= 15 ? 'text-amber-600' : 'text-slate-700'}`}>
-                  {countdown}s
+                <div className={`text-4xl font-bold ${elapsed >= 35 ? 'text-red-600' : elapsed >= 25 ? 'text-amber-600' : 'text-slate-700'}`}>
+                  {Math.max(0, Math.ceil(35 - elapsed))}s
                 </div>
                 <p className="text-sm text-slate-600 mt-2">Time remaining</p>
               </>
