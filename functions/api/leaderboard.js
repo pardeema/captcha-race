@@ -20,6 +20,22 @@ export async function onRequest(context) {
   if (request.method === 'GET') {
     // Get leaderboard data
     try {
+      // Debug: Check available bindings
+      const availableBindings = Object.keys(env);
+      
+      if (!env['KV']) {
+        return new Response(JSON.stringify({ 
+          error: 'KV binding not found in GET', 
+          availableBindings: availableBindings,
+          debug: 'KV binding is missing in GET request'
+        }), {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*',
+          }
+        });
+      }
+      
       const data = await env['KV'].get(LEADERBOARD_KEY);
       const leaderboard = data ? JSON.parse(data) : [];
       return new Response(JSON.stringify(leaderboard), {
@@ -29,7 +45,11 @@ export async function onRequest(context) {
         }
       });
     } catch (error) {
-      return new Response(JSON.stringify([]), {
+      return new Response(JSON.stringify({ 
+        error: 'GET request failed', 
+        details: error.message,
+        availableBindings: Object.keys(env)
+      }), {
         headers: { 
           'Content-Type': 'application/json',
           'Access-Control-Allow-Origin': '*',
