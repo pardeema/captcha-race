@@ -871,7 +871,7 @@ function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => voi
   };
 
   // Prevent context menu on long press
-  const preventContextMenu = (e: React.TouchEvent) => {
+  const preventContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
   };
 
