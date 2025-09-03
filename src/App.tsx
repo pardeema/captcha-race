@@ -857,8 +857,8 @@ function ResultsAndShare({ brand }: { brand: string }) {
     const handleSaveScore = (event: CustomEvent) => {
       const name = event.detail.name;
       setName(name);
-      // Save will be triggered after name is set
-      setTimeout(() => save(), 100);
+      // Pass the name directly to save function
+      save(name);
     };
 
     window.addEventListener('captchaCompleted', handleCaptchaCompleted);
@@ -887,13 +887,13 @@ function ResultsAndShare({ brand }: { brand: string }) {
     setDelta({ saved: wastedSecs, percent: pct });
   }, [rows, ready]);
 
-  const save = async () => {
+  const save = async (customName?: string) => {
     const g = (window as any).KASADA_GAME;
     if (!g?.captcha?.seconds || hasSubmittedScore) return; // Only require CAPTCHA completion and prevent duplicates
     
     const row: ScoreRow = {
       id: uid(),
-      name: name || 'Anonymous',
+      name: customName || name || 'Anonymous',
       captchaSeconds: g.captcha.seconds,
       kasadaSeconds: 0, // No longer used
       retries: g.captcha.retries ?? 0,
