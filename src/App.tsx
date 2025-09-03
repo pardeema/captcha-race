@@ -156,7 +156,10 @@ export default function App() {
           <h1 className="text-2xl font-semibold tracking-tight">CAPTCHA Race</h1>
         </header>
 
-        <CaptchaColumn label="CAPTCHA Puzzles" />
+        <div className="grid md:grid-cols-2 gap-6">
+          <CaptchaColumn label="CAPTCHA Puzzles" />
+          <TimerCard />
+        </div>
 
         <ResultsAndShare brand="Kasada" />
       </div>
@@ -266,6 +269,9 @@ function CaptchaColumn({ label }: { label: string }) {
     setTimeUp(false);
     setCountdown(30); // Start 30-second countdown
     t0.current = null;
+    
+    // Dispatch event to start timer in TimerCard
+    window.dispatchEvent(new CustomEvent('gameStart'));
   };
 
   const onFail = () => {
@@ -351,7 +357,7 @@ function CaptchaColumn({ label }: { label: string }) {
 
   return (
     <>
-      <Card className="rounded-2xl shadow-md max-w-2xl mx-auto">
+      <Card className="rounded-2xl shadow-md">
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>{label}</span>
@@ -372,21 +378,6 @@ function CaptchaColumn({ label }: { label: string }) {
 
           {running && current && (
             <div className="space-y-4">
-              <div className="text-center">
-                {countdown !== null ? (
-                  <>
-                    <div className={`text-3xl font-bold ${countdown <= 10 ? 'text-red-600' : countdown <= 15 ? 'text-amber-600' : 'text-slate-700'}`}>
-                      {countdown}s
-                    </div>
-                    <p className="text-sm text-slate-600">Time remaining</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="text-3xl font-bold text-red-600">⏰</div>
-                    <p className="text-sm text-red-600">Time's up! Keep going...</p>
-                  </>
-                )}
-              </div>
               {React.createElement(current, { onFail, onPass })}
             </div>
           )}
@@ -426,7 +417,103 @@ function CaptchaColumn({ label }: { label: string }) {
   );
 }
 
+// =============================
+// Timer Card Component
+// =============================
 
+function TimerCard() {
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [timeUp, setTimeUp] = useState(false);
+
+  // Listen for game start and completion events
+  useEffect(() => {
+    const handleGameStart = () => {
+      setCountdown(30);
+      setTimeUp(false);
+    };
+
+    const handleGameComplete = () => {
+      // Keep the final countdown state
+    };
+
+    const handleGameReset = () => {
+      setCountdown(null);
+      setTimeUp(false);
+    };
+
+    // Listen for custom events from CaptchaColumn
+    window.addEventListener('gameStart', handleGameStart);
+    window.addEventListener('captchaCompleted', handleGameComplete);
+    window.addEventListener('gameReset', handleGameReset);
+
+    return () => {
+      window.removeEventListener('gameStart', handleGameStart);
+      window.removeEventListener('captchaCompleted', handleGameComplete);
+      window.removeEventListener('gameReset', handleGameReset);
+    };
+  }, []);
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (countdown === null) return;
+    
+    if (countdown <= 0) {
+      setTimeUp(true);
+      setCountdown(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
+  return (
+    <Card className="rounded-2xl shadow-md">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Zap className="w-5 h-5"/>
+          Limited Time Event
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          <div className="text-center">
+            {countdown !== null ? (
+              <>
+                <div className={`text-4xl font-bold ${countdown <= 10 ? 'text-red-600' : countdown <= 15 ? 'text-amber-600' : 'text-slate-700'}`}>
+                  {countdown}s
+                </div>
+                <p className="text-sm text-slate-600 mt-2">Time remaining</p>
+              </>
+            ) : timeUp ? (
+              <>
+                <div className="text-4xl font-bold text-red-600">⏰</div>
+                <p className="text-sm text-red-600 mt-2">Time's up!</p>
+              </>
+            ) : (
+              <>
+                <div className="text-4xl font-bold text-slate-400">30s</div>
+                <p className="text-sm text-slate-500 mt-2">Ready to start</p>
+              </>
+            )}
+          </div>
+          
+          <div className="text-center space-y-2">
+            <p className="text-sm text-slate-600">
+              Beat the 30-second clock to secure your spot in this limited event.
+            </p>
+            <p className="text-xs text-slate-500">
+              When time matters—like placing a bet, buying limited merchandise, or securing concert tickets—every second counts.
+            </p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 // =============================
 // Challenges
@@ -457,9 +544,9 @@ function CaptchaFrustratedEmojis({ onPass, onFail }: { onPass: () => void; onFai
   return (
     <div className="space-y-3">
       <div className="text-sm">Select all tiles with <span className="font-medium">the frustrated emoji</span>.</div>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-3 gap-1 max-w-xs mx-auto">
         {grid.map((emoji, idx) => (
-          <button key={idx} className={`aspect-square rounded-lg border flex items-center justify-center text-3xl ${picked.includes(idx) ? 'bg-slate-200' : 'bg-white'}`}
+          <button key={idx} className={`aspect-square rounded-lg border flex items-center justify-center text-xl ${picked.includes(idx) ? 'bg-slate-200' : 'bg-white'}`}
             onClick={() => setPicked(p => p.includes(idx) ? p.filter(i => i!==idx) : [...p, idx])}>{emoji}</button>
         ))}
       </div>
