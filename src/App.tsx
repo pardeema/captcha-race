@@ -972,7 +972,14 @@ function ResultsAndShare({ brand }: { brand: string }) {
     const u = new URL(window.location.href);
     const g = (window as any).KASADA_GAME;
     if (g?.captcha?.seconds) u.searchParams.set('last_captcha', String(g.captcha.seconds.toFixed(1)));
-    try { await navigator.clipboard.writeText(u.toString()); } catch {}
+    
+    // Create dynamic share text based on result
+    const beatTheClock = g?.captcha?.beatTheClock ?? false;
+    const shareText = beatTheClock 
+      ? `I beat the CAPTCHA clock -- can you? ${u.toString()}`
+      : `I lost the race against the clock in CAPTCHA race, can you do better? ${u.toString()}`;
+    
+    try { await navigator.clipboard.writeText(shareText); } catch {}
   };
 
   // Load leaderboard from API on mount
