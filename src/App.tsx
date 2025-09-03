@@ -836,29 +836,29 @@ function Leaderboard({ rows }: { rows: ScoreRow[] }) {
   );
   return (
     <div className="border rounded-xl overflow-hidden">
-      <div className="grid grid-cols-7 bg-slate-50 text-xs px-3 py-2 text-slate-600">
-        <div>Rank</div>
+      <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto_auto] gap-2 bg-slate-50 text-xs px-3 py-2 text-slate-600">
+        <div className="w-8">Rank</div>
         <div>Player</div>
-        <div>Time</div>
-        <div>Attempts</div>
-        <div>Skips</div>
-        <div>Success%</div>
-        <div>Date</div>
+        <div className="w-12 text-center">Time</div>
+        <div className="w-12 text-center">Attempts</div>
+        <div className="w-10 text-center">Skips</div>
+        <div className="w-12 text-center">Success%</div>
+        <div className="w-16 text-center">Date</div>
       </div>
       <div className="divide-y max-h-96 overflow-y-auto">
         {rows.slice(0, 25).map((r, index) => {
           const successRate = r.attempts > 0 ? Math.round(((r.attempts - r.failures) / r.attempts) * 100) : 0;
           return (
-            <div className="grid grid-cols-7 px-3 py-2 text-sm" key={r.id}>
-              <div className="font-medium text-slate-600">#{index + 1}</div>
-              <div className="truncate">{r.name}</div>
-              <div className="font-mono">{fmt(r.captchaSeconds)}</div>
-              <div>{r.attempts}</div>
-              <div>{r.skips}</div>
-              <div className={successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}>
+            <div className="grid grid-cols-[auto_1fr_auto_auto_auto_auto_auto] gap-2 px-3 py-2 text-sm" key={r.id}>
+              <div className="w-8 font-medium text-slate-600">#{index + 1}</div>
+              <div className="truncate min-w-0">{r.name}</div>
+              <div className="w-12 font-mono text-center">{fmt(r.captchaSeconds)}</div>
+              <div className="w-12 text-center">{r.attempts}</div>
+              <div className="w-10 text-center">{r.skips}</div>
+              <div className={`w-12 text-center ${successRate >= 80 ? 'text-green-600' : successRate >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
                 {successRate}%
               </div>
-              <div className="text-xs text-slate-500">{new Date(r.date).toLocaleDateString()}</div>
+              <div className="w-16 text-xs text-slate-500 text-center">{new Date(r.date).toLocaleDateString()}</div>
             </div>
           );
         })}
