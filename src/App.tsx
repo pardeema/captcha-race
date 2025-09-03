@@ -115,13 +115,10 @@ export default function App() {
       <div className="max-w-5xl mx-auto p-6">
         <header className="flex items-center gap-3 mb-6">
           <Shield className="w-7 h-7"/>
-          <h1 className="text-2xl font-semibold tracking-tight">Kasada vs CAPTCHA</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">CAPTCHA Race</h1>
         </header>
 
-        <div className="grid md:grid-cols-2 gap-6">
-          <CaptchaColumn label="CAPTCHA Flow" />
-          <KasadaColumn label="Kasada Flow" />
-        </div>
+        <CaptchaColumn label="CAPTCHA Puzzles" />
 
         <ResultsAndShare brand="Kasada" />
       </div>
@@ -135,7 +132,7 @@ export default function App() {
 
 function CaptchaColumn({ label }: { label: string }) {
   const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const roundsParam = Math.min(10, Math.max(5, Number(params.get('rounds') || 7))); // default 7 (between 5–10)
+  const roundsParam = Math.min(10, Math.max(7, Number(params.get('rounds') || 8))); // default 8 (between 7–10)
 
   const [roundIdx, setRoundIdx] = useState<number>(-1); // -1 = not started
   const [retries, setRetries] = useState(0);
@@ -147,6 +144,8 @@ function CaptchaColumn({ label }: { label: string }) {
   const [showFrustrationPopup, setShowFrustrationPopup] = useState(false);
   const [currentChallengeFailures, setCurrentChallengeFailures] = useState(0);
   const [challengeStats, setChallengeStats] = useState<{attempts: number, failures: number}>({attempts: 0, failures: 0});
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [timeUp, setTimeUp] = useState(false);
 
   // Pool of challenge components
   const pool: React.ComponentType<any>[] = [
@@ -172,17 +171,41 @@ function CaptchaColumn({ label }: { label: string }) {
     return () => cancelAnimationFrame(raf);
   }, [running]);
 
+  // Countdown timer
+  useEffect(() => {
+    if (countdown === null) return;
+    
+    if (countdown <= 0) {
+      setTimeUp(true);
+      setRunning(false);
+      setCountdown(null);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setCountdown(countdown - 1);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [countdown]);
+
   // Reset on stop
   useEffect(() => {
     if (!running && roundIdx < 0) { setElapsed(0); t0.current = null; }
   }, [running, roundIdx]);
 
   const start = () => {
-    // Build a randomized sequence ensuring no consecutive duplicates
+    // Build a randomized sequence ensuring at least one of each puzzle type
     const seq: React.ComponentType<any>[] = [];
-    let lastChallenge: React.ComponentType<any> | null = null;
     
-    for (let i = 0; i < roundsParam; i++) {
+    // First, add one of each puzzle type
+    const shuffledPool = [...pool].sort(() => Math.random() - 0.5);
+    seq.push(...shuffledPool);
+    
+    // Then add remaining puzzles randomly (ensuring no consecutive duplicates)
+    let lastChallenge = shuffledPool[shuffledPool.length - 1];
+    
+    for (let i = pool.length; i < roundsParam; i++) {
       let availableChallenges = pool;
       
       // If we have a previous challenge, exclude it from the next selection
@@ -201,6 +224,8 @@ function CaptchaColumn({ label }: { label: string }) {
     setRetries(0);
     setElapsed(0);
     setRunning(true);
+    setTimeUp(false);
+    setCountdown(30); // Start 30-second countdown
     t0.current = null;
   };
 
@@ -229,7 +254,8 @@ function CaptchaColumn({ label }: { label: string }) {
           rage, 
           attempts: challengeStats.attempts + 1, 
           failures: challengeStats.failures,
-          skips: (window as any).KASADA_GAME?.captcha?.skips || 0
+          skips: (window as any).KASADA_GAME?.captcha?.skips || 0,
+          completedInTime: !timeUp
         }
       };
       // Trigger a custom event to notify the leaderboard component
@@ -280,23 +306,54 @@ function CaptchaColumn({ label }: { label: string }) {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {roundIdx < 0 && (
+          {roundIdx < 0 && !timeUp && (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">Complete <b>{roundsParam}</b> deliberately frustrating challenges.</p>
+              <p className="text-sm text-amber-600 font-medium">⏰ You have 30 seconds to complete all challenges!</p>
               <Button onClick={start}>Start challenges</Button>
               <div className="text-xs text-slate-500">Rage clicks are tracked automatically.</div>
             </div>
           )}
 
-          {running && current && (
-            React.createElement(current, { onFail, onPass })
+          {timeUp && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className="text-6xl mb-4">⏰</div>
+                <h3 className="text-xl font-bold text-red-600 mb-2">Time's Up!</h3>
+                <p className="text-sm text-slate-600 mb-4">
+                  You didn't complete all challenges in time. This is exactly what happens to users when CAPTCHAs slow them down during time-sensitive actions.
+                </p>
+                <Button onClick={() => {
+                  setTimeUp(false);
+                  setRoundIdx(-1);
+                  setSequence([]);
+                  setRetries(0);
+                  setElapsed(0);
+                  setRunning(false);
+                  setCurrentChallengeFailures(0);
+                  setChallengeStats({attempts: 0, failures: 0});
+                }}>Try Again</Button>
+              </div>
+            </div>
           )}
 
-          {(!running && roundIdx >= sequence.length && sequence.length>0) && (
-            <div className="text-sm text-emerald-700 flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> All {sequence.length} challenges completed.</div>
+          {running && current && countdown !== null && (
+            <div className="space-y-4">
+              <div className="text-center">
+                <div className={`text-3xl font-bold ${countdown <= 10 ? 'text-red-600' : countdown <= 15 ? 'text-amber-600' : 'text-slate-700'}`}>
+                  {countdown}s
+                </div>
+                <p className="text-sm text-slate-600">Time remaining</p>
+              </div>
+              {React.createElement(current, { onFail, onPass })}
+            </div>
           )}
 
-          {(roundIdx >= 0) && (
+          {(!running && roundIdx >= sequence.length && sequence.length>0 && !timeUp) && (
+            <div className="text-sm text-emerald-700 flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> All {sequence.length} challenges completed in time!</div>
+          )}
+
+          {(roundIdx >= 0 && !timeUp) && (
             <div className="mt-4 text-xs text-slate-500">Round {Math.min(roundIdx+1, sequence.length)} / {sequence.length || roundsParam} · Retries: {retries} · Rage events: {rage}</div>
           )}
         </CardContent>
@@ -312,52 +369,7 @@ function CaptchaColumn({ label }: { label: string }) {
   );
 }
 
-// =============================
-// Kasada Column
-// =============================
 
-function KasadaColumn({ label }: { label: string }) {
-  const [done, setDone] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const t = useRef<number | null>(null);
-
-  const start = () => {
-    t.current = performance.now();
-    setTimeout(() => {
-      const secs = (performance.now() - (t.current || performance.now())) / 1000;
-      setElapsed(secs);
-      setDone(true);
-      (window as any).KASADA_GAME = {
-        ...(window as any).KASADA_GAME,
-        kasada: { seconds: secs }
-      };
-    }, 300);
-  };
-
-  return (
-    <Card className="rounded-2xl shadow-md">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>{label}</span>
-          <span className="text-sm font-normal text-slate-500 flex items-center gap-2"><Zap className="w-4 h-4"/>{done ? fmt(elapsed) : '—'}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {!done ? (
-          <div className="space-y-4">
-            <p className="text-sm">Frictionless verification. One click.</p>
-            <Button onClick={start}>Continue</Button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-3 text-emerald-600">
-            <CheckCircle2 className="w-5 h-5"/>
-            <span className="text-sm">Verified silently. You're in.</span>
-          </div>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
 
 // =============================
 // Challenges
@@ -671,10 +683,11 @@ function ResultsAndShare({ brand }: { brand: string }) {
 
   useEffect(() => {
     const g = (window as any).KASADA_GAME;
-    if (!g?.captcha?.seconds || !g?.kasada?.seconds) return;
-    const savedSecs = Math.max(0, g.captcha.seconds - g.kasada.seconds);
-    const pct = g.captcha.seconds > 0 ? (savedSecs / g.captcha.seconds) * 100 : 0;
-    setDelta({ saved: savedSecs, percent: pct });
+    if (!g?.captcha?.seconds) return;
+    // For time-limited scenarios, we show how much time was "wasted" on CAPTCHAs
+    const wastedSecs = g.captcha.seconds;
+    const pct = 100; // 100% of time was spent on CAPTCHAs
+    setDelta({ saved: wastedSecs, percent: pct });
   }, [rows, ready]);
 
   const save = async () => {
@@ -685,7 +698,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
       id: uid(),
       name: name || 'Anonymous',
       captchaSeconds: g.captcha.seconds,
-      kasadaSeconds: g.kasada?.seconds ?? 0,
+      kasadaSeconds: 0, // No longer used
       retries: g.captcha.retries ?? 0,
       rageClicks: g.captcha.rage ?? 0,
       attempts: g.captcha.attempts ?? 0,
@@ -746,7 +759,6 @@ function ResultsAndShare({ brand }: { brand: string }) {
     const u = new URL(window.location.href);
     const g = (window as any).KASADA_GAME;
     if (g?.captcha?.seconds) u.searchParams.set('last_captcha', String(g.captcha.seconds.toFixed(1)));
-    if (g?.kasada?.seconds) u.searchParams.set('last_kasada', String(g.kasada.seconds.toFixed(1)));
     try { await navigator.clipboard.writeText(u.toString()); } catch {}
   };
 
@@ -792,6 +804,12 @@ function ResultsAndShare({ brand }: { brand: string }) {
                   <Stat label="Skips" value={String(g.captcha.skips ?? 0)} />
                   <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
                 </div>
+                {g.captcha.completedInTime === false && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-700 font-medium">⏰ Time's Up!</p>
+                    <p className="text-xs text-red-600">You didn't complete all challenges in 30 seconds.</p>
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                   <Input className="max-w-[180px]" value={name} onChange={e => setName(e.target.value)} placeholder="Your name (optional)"/>
