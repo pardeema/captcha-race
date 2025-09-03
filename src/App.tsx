@@ -122,7 +122,7 @@ function CompletionModal({ onClose, beatTheClock, totalTime, onSave }: {
             <p className="text-lg text-slate-600">
               {beatTheClock 
                 ? `Congratulations! You completed all challenges in ${totalTime.toFixed(1)} seconds.`
-                : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 30-second timer expired.`
+                : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 40-second timer expired.`
               }
             </p>
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -291,7 +291,7 @@ function CaptchaColumn({ label }: { label: string }) {
     setElapsed(0);
     setRunning(true);
     setTimeUp(false);
-    setCountdown(30); // Start 30-second countdown
+    setCountdown(40); // Start 40-second countdown
     t0.current = null;
     
     // Dispatch event to start timer in TimerCard
@@ -390,7 +390,7 @@ function CaptchaColumn({ label }: { label: string }) {
           {roundIdx < 0 && !timeUp && (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">Complete <b>{roundsParam}</b> deliberately frustrating challenges.</p>
-              <p className="text-sm text-amber-600 font-medium">⏰ You have 30 seconds to complete all challenges!</p>
+              <p className="text-sm text-amber-600 font-medium">⏰ You have 40 seconds to complete all challenges!</p>
               <Button onClick={start}>Start challenges</Button>
             </div>
           )}
@@ -455,7 +455,7 @@ function TimerCard() {
   // Listen for game start and completion events
   useEffect(() => {
     const handleGameStart = () => {
-      setCountdown(30);
+      setCountdown(40);
       setTimeUp(false);
     };
 
@@ -522,7 +522,7 @@ function TimerCard() {
               </>
             ) : (
               <>
-                <div className="text-4xl font-bold text-slate-400">30s</div>
+                <div className="text-4xl font-bold text-slate-400">40s</div>
                 <p className="text-sm text-slate-500 mt-2">Ready to start</p>
               </>
             )}
@@ -530,7 +530,7 @@ function TimerCard() {
           
           <div className="text-center space-y-2">
             <p className="text-sm text-slate-600">
-              Beat the 30-second clock to secure your spot in this limited event.
+              Beat the 40-second clock to secure your spot in this limited event.
             </p>
           </div>
         </div>
@@ -771,7 +771,7 @@ function CaptchaBorder({ onPass, onFail }: { onPass: () => void; onFail: () => v
 // 6) Hold steady (2s ±50ms)
 function CaptchaHold({ onPass, onFail }: { onPass: () => void; onFail: () => void }) {
   const REQUIRED = 2000; // ms
-  const TOLERANCE = 50; // ±50ms
+  const TOLERANCE = 65; // ±65ms
   const [holding, setHolding] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const tRef = useRef<number | null>(null);
@@ -987,8 +987,8 @@ function ResultsAndShare({ brand }: { brand: string }) {
                     </p>
                     <p className={`text-xs ${g.captcha.beatTheClock ? 'text-green-600' : 'text-amber-600'}`}>
                       {g.captcha.beatTheClock 
-                        ? 'Completed all challenges within 30 seconds!' 
-                        : 'Completed all challenges but exceeded 30 seconds.'
+                        ? 'Completed all challenges within 40 seconds!' 
+                        : 'Completed all challenges but exceeded 40 seconds.'
                       }
                     </p>
                   </div>
