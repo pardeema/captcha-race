@@ -15,7 +15,6 @@ type ScoreRow = {
   captchaSeconds: number;
   kasadaSeconds: number;
   retries: number;
-  rageClicks: number;
   attempts: number;
   failures: number;
   skips: number;
@@ -35,22 +34,7 @@ function saveScores(rows: ScoreRow[]) {
   localStorage.setItem(LS_KEY, JSON.stringify(rows.slice(0, 25)));
 }
 
-// Rage click detector
-function useRageClicks(active: boolean) {
-  const [rage, setRage] = useState(0);
-  useEffect(() => {
-    if (!active) return;
-    let clicks = 0;
-    const handler = () => {
-      clicks++;
-      if (clicks >= 5) { setRage(r => r + 1); clicks = 0; }
-      setTimeout(() => { clicks = 0; }, 1500);
-    };
-    window.addEventListener("click", handler);
-    return () => window.removeEventListener("click", handler);
-  }, [active]);
-  return rage;
-}
+
 
 // Sanity tests (lightweight runtime assertions)
 function runSanityTests() {
@@ -221,7 +205,6 @@ function CaptchaColumn({ label }: { label: string }) {
   const [elapsed, setElapsed] = useState(0);
   const [running, setRunning] = useState(false);
   const [sequence, setSequence] = useState<React.ComponentType<any>[]>([]);
-  const rage = useRageClicks(running);
   const t0 = useRef<number | null>(null);
   const [showFrustrationPopup, setShowFrustrationPopup] = useState(false);
   const [currentChallengeFailures, setCurrentChallengeFailures] = useState(0);
@@ -343,7 +326,6 @@ function CaptchaColumn({ label }: { label: string }) {
         captcha: { 
           seconds: elapsed, 
           retries, 
-          rage, 
           attempts: challengeStats.attempts + 1, 
           failures: challengeStats.failures,
           skips: (window as any).KASADA_GAME?.captcha?.skips || 0,
@@ -356,7 +338,6 @@ function CaptchaColumn({ label }: { label: string }) {
         detail: { 
           seconds: elapsed, 
           retries, 
-          rage, 
           attempts: challengeStats.attempts + 1, 
           failures: challengeStats.failures,
           skips: (window as any).KASADA_GAME?.captcha?.skips || 0,
@@ -411,7 +392,6 @@ function CaptchaColumn({ label }: { label: string }) {
               <p className="text-sm text-slate-600">Complete <b>{roundsParam}</b> deliberately frustrating challenges.</p>
               <p className="text-sm text-amber-600 font-medium">⏰ You have 30 seconds to complete all challenges!</p>
               <Button onClick={start}>Start challenges</Button>
-              <div className="text-xs text-slate-500">Rage clicks are tracked automatically.</div>
             </div>
           )}
 
@@ -436,7 +416,7 @@ function CaptchaColumn({ label }: { label: string }) {
           )}
 
           {(roundIdx >= 0 && !timeUp) && (
-            <div className="mt-4 text-xs text-slate-500">Round {Math.min(roundIdx+1, sequence.length)} / {sequence.length || roundsParam} · Retries: {retries} · Rage events: {rage}</div>
+            <div className="mt-4 text-xs text-slate-500">Round {Math.min(roundIdx+1, sequence.length)} / {sequence.length || roundsParam} · Retries: {retries}</div>
           )}
         </CardContent>
       </Card>
@@ -897,7 +877,6 @@ function ResultsAndShare({ brand }: { brand: string }) {
       captchaSeconds: g.captcha.seconds,
       kasadaSeconds: 0, // No longer used
       retries: g.captcha.retries ?? 0,
-      rageClicks: g.captcha.rage ?? 0,
       attempts: g.captcha.attempts ?? 0,
       failures: g.captcha.failures ?? 0,
       skips: g.captcha.skips ?? 0,
@@ -998,7 +977,6 @@ function ResultsAndShare({ brand }: { brand: string }) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   <Stat label="Retries" value={String(g.captcha.retries ?? 0)} />
-                  <Stat label="Rage events" value={String(g.captcha.rage ?? 0)} />
                   <Stat label="Skips" value={String(g.captcha.skips ?? 0)} />
                   <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
                 </div>
