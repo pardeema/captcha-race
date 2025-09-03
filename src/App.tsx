@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
-import { Copy, TimerReset, Trophy, CheckCircle2, Shield, Zap, Share2 } from "lucide-react";
+import { Copy, TimerReset, Trophy, CheckCircle2, Shield, Zap, Share2, RotateCcw } from "lucide-react";
 
 // =============================
 // Types & Utils
@@ -1090,7 +1090,7 @@ function ResultsAndShare({ brand }: { brand: string }) {
                     {copySuccess ? "Copied!" : "Copy share link"}
                   </Button>
                   <Button variant="outline" onClick={replay} size="sm" className="bg-white hover:bg-gray-50 text-gray-700 border-gray-300">
-                    <Share2 className="w-4 h-4 mr-2"/>Replay
+                    <RotateCcw className="w-4 h-4 mr-2"/>Replay
                   </Button>
                   {hasSubmittedScore && <span className="text-emerald-600 text-sm">Score saved to leaderboard!</span>}
                 </div>
