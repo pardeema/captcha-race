@@ -16,6 +16,8 @@ type ScoreRow = {
   kasadaSeconds: number;
   retries: number;
   rageClicks: number;
+  attempts: number;
+  failures: number;
   date: string;
 };
 
@@ -66,6 +68,42 @@ function runSanityTests() {
 }
 
 // =============================
+// Frustration Popup Component
+// =============================
+
+function FrustrationPopup({ onKeepTrying, onSkip, correctText }: { onKeepTrying: () => void; onSkip: () => void; correctText?: string }) {
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-2xl p-8 max-w-md mx-4 shadow-2xl">
+        <div className="text-center space-y-4">
+          <div className="text-6xl">😤</div>
+          <h2 className="text-2xl font-bold text-slate-900">Frustrated?</h2>
+          <p className="text-lg text-slate-600">
+            Imagine this happening to your users
+          </p>
+          {correctText && (
+            <div className="mt-4 p-4 bg-slate-50 rounded-lg">
+              <p className="text-sm text-slate-500 mb-2">Correct spelling:</p>
+              <p className="text-lg font-mono" style={{ fontFamily: 'serif' }}>
+                {correctText}
+              </p>
+            </div>
+          )}
+          <div className="flex gap-3">
+            <Button onClick={onKeepTrying} variant="secondary" className="flex-1">
+              Keep trying
+            </Button>
+            <Button onClick={onSkip} className="flex-1">
+              Skip
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// =============================
 // Main App
 // =============================
 
@@ -96,7 +134,7 @@ export default function App() {
 
 function CaptchaColumn({ label }: { label: string }) {
   const params = new URLSearchParams(typeof window !== 'undefined' ? window.location.search : '');
-  const roundsParam = Math.min(20, Math.max(10, Number(params.get('rounds') || 15))); // default 15 (between 10–20)
+  const roundsParam = Math.min(10, Math.max(5, Number(params.get('rounds') || 7))); // default 7 (between 5–10)
 
   const [roundIdx, setRoundIdx] = useState<number>(-1); // -1 = not started
   const [retries, setRetries] = useState(0);
@@ -105,6 +143,9 @@ function CaptchaColumn({ label }: { label: string }) {
   const [sequence, setSequence] = useState<React.ComponentType<any>[]>([]);
   const rage = useRageClicks(running);
   const t0 = useRef<number | null>(null);
+  const [showFrustrationPopup, setShowFrustrationPopup] = useState(false);
+  const [currentChallengeFailures, setCurrentChallengeFailures] = useState(0);
+  const [challengeStats, setChallengeStats] = useState<{attempts: number, failures: number}>({attempts: 0, failures: 0});
 
   // Pool of challenge components
   const pool: React.ComponentType<any>[] = [
@@ -147,8 +188,18 @@ function CaptchaColumn({ label }: { label: string }) {
     t0.current = null;
   };
 
-  const onFail = () => setRetries(r => r + 1);
+  const onFail = () => {
+    setRetries(r => r + 1);
+    setCurrentChallengeFailures(f => f + 1);
+    setChallengeStats(s => ({...s, attempts: s.attempts + 1, failures: s.failures + 1}));
+    
+    if (currentChallengeFailures >= 4) { // 5th failure (0-indexed)
+      setShowFrustrationPopup(true);
+    }
+  };
+  
   const onPass = () => {
+    setChallengeStats(s => ({...s, attempts: s.attempts + 1}));
     const next = roundIdx + 1;
     if (next >= sequence.length) {
       setRunning(false);
@@ -156,45 +207,66 @@ function CaptchaColumn({ label }: { label: string }) {
       // persist metrics
       (window as any).KASADA_GAME = {
         ...(window as any).KASADA_GAME,
-        captcha: { seconds: elapsed, retries, rage }
+        captcha: { seconds: elapsed, retries, rage, attempts: challengeStats.attempts + 1, failures: challengeStats.failures }
       };
     } else {
       setRoundIdx(next);
+      setCurrentChallengeFailures(0); // Reset failures for next challenge
     }
+  };
+  
+  const handleKeepTrying = () => {
+    setShowFrustrationPopup(false);
+    setCurrentChallengeFailures(0); // Reset failure count to give them a fresh start
+  };
+
+  const handleSkip = () => {
+    setShowFrustrationPopup(false);
+    setCurrentChallengeFailures(0);
+    onPass(); // Move to next challenge
   };
 
   const current = roundIdx >= 0 && roundIdx < sequence.length ? sequence[roundIdx] : null;
 
   return (
-    <Card className="rounded-2xl shadow-md">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>{label}</span>
-          <span className="text-sm font-normal text-slate-500 flex items-center gap-2"><TimerReset className="w-4 h-4"/>{fmt(elapsed)}</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        {roundIdx < 0 && (
-          <div className="space-y-4">
-            <p className="text-sm text-slate-600">Complete <b>{roundsParam}</b> deliberately frustrating challenges.</p>
-            <Button onClick={start}>Start challenges</Button>
-            <div className="text-xs text-slate-500">Rage clicks are tracked automatically.</div>
-          </div>
-        )}
+    <>
+      <Card className="rounded-2xl shadow-md">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>{label}</span>
+            <span className="text-sm font-normal text-slate-500 flex items-center gap-2"><TimerReset className="w-4 h-4"/>{fmt(elapsed)}</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {roundIdx < 0 && (
+            <div className="space-y-4">
+              <p className="text-sm text-slate-600">Complete <b>{roundsParam}</b> deliberately frustrating challenges.</p>
+              <Button onClick={start}>Start challenges</Button>
+              <div className="text-xs text-slate-500">Rage clicks are tracked automatically.</div>
+            </div>
+          )}
 
-        {running && current && (
-          React.createElement(current, { onFail, onPass })
-        )}
+          {running && current && (
+            React.createElement(current, { onFail, onPass })
+          )}
 
-        {(!running && roundIdx >= sequence.length && sequence.length>0) && (
-          <div className="text-sm text-emerald-700 flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> All {sequence.length} challenges completed.</div>
-        )}
+          {(!running && roundIdx >= sequence.length && sequence.length>0) && (
+            <div className="text-sm text-emerald-700 flex items-center gap-2"><CheckCircle2 className="w-4 h-4"/> All {sequence.length} challenges completed.</div>
+          )}
 
-        {(roundIdx >= 0) && (
-          <div className="mt-4 text-xs text-slate-500">Round {Math.min(roundIdx+1, sequence.length)} / {sequence.length || roundsParam} · Retries: {retries} · Rage events: {rage}</div>
-        )}
-      </CardContent>
-    </Card>
+          {(roundIdx >= 0) && (
+            <div className="mt-4 text-xs text-slate-500">Round {Math.min(roundIdx+1, sequence.length)} / {sequence.length || roundsParam} · Retries: {retries} · Rage events: {rage}</div>
+          )}
+        </CardContent>
+      </Card>
+      {showFrustrationPopup && (
+        <FrustrationPopup 
+          onKeepTrying={handleKeepTrying}
+          onSkip={handleSkip}
+          correctText={current === CaptchaWord ? (CaptchaWord as any).correctText : undefined}
+        />
+      )}
+    </>
   );
 }
 
@@ -317,11 +389,14 @@ function CaptchaSlider({ onPass, onFail }: { onPass: () => void; onFail: (angle:
 // 3) Distorted word (no random fail)
 function CaptchaWord({ onPass, onFail }: { onPass: () => void; onFail: () => void }) {
   const base = useMemo(() => {
-    const words = ["kAs4dA", "fr1ct10n", "0mn1", "hum4n", "s3cur1ty", "res1l13nt"]; return words[Math.floor(Math.random()*words.length)];
+    const words = ["c4ptch4", "v3rify", "s3cur1ty", "4cc3ss", "c0nf1rm", "v4l1d4t3", "pr0t3ct", "4uth3nt1c", "p4ssw0rd", "l0g1n", "s3cur3", "4cc3pt", "r3j3ct", "4ppr0v3", "d3n1ed"]; return words[Math.floor(Math.random()*words.length)];
   }, []);
   const [val, setVal] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const verify = () => { if (val === base) onPass(); else { setErr("Not quite, try again"); onFail(); } };
+  
+  // Expose the correct text for the popup
+  (CaptchaWord as any).correctText = base;
   return (
     <div className="space-y-3">
       <div className="text-sm">Type the characters you see:</div>
@@ -459,14 +534,9 @@ function CaptchaBorder({ onPass, onFail }: { onPass: () => void; onFail: () => v
               className={`aspect-square rounded-lg text-xl flex items-center justify-center relative ${
                 isTarget 
                   ? 'bg-yellow-100 border-2 border-yellow-400' 
-                  : isNeighbor 
-                    ? 'bg-blue-50 border-2 border-blue-300' 
-                    : 'bg-white border border-gray-300'
+                  : 'bg-white border border-gray-300'
               } ${isPicked ? 'ring-2 ring-green-400' : ''}`}>
               {isTarget ? '🎯' : ''}
-              {isNeighbor && !isTarget && (
-                <div className="absolute inset-0 border-2 border-dashed border-blue-400 rounded-lg"></div>
-              )}
             </button>
           );
         })}
@@ -548,6 +618,8 @@ function ResultsAndShare({ brand }: { brand: string }) {
       kasadaSeconds: g.kasada.seconds,
       retries: g.captcha.retries ?? 0,
       rageClicks: g.captcha.rage ?? 0,
+      attempts: g.captcha.attempts ?? 0,
+      failures: g.captcha.failures ?? 0,
       date: new Date().toISOString(),
     };
     const next = [row, ...rows].sort((a,b) => a.captchaSeconds - b.captchaSeconds);
@@ -585,6 +657,11 @@ function ResultsAndShare({ brand }: { brand: string }) {
                 <Stat label="Retries" value={String(g.captcha.retries ?? 0)} />
                 <Stat label="Rage events" value={String(g.captcha.rage ?? 0)} />
                 <Stat label="CX improvement" value={`${Math.round(delta.percent)}% faster`} />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <Stat label="Total attempts" value={String(g.captcha.attempts ?? 0)} />
+                <Stat label="Failed attempts" value={String(g.captcha.failures ?? 0)} />
+                <Stat label="Success rate" value={`${g.captcha.attempts ? Math.round(((g.captcha.attempts - g.captcha.failures) / g.captcha.attempts) * 100) : 0}%`} />
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
