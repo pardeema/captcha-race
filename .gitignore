@@ -25,3 +25,4 @@ dist-ssr
 
 # Cloudflare configuration (contains sensitive KV namespace IDs)
 wrangler.toml
+src/**/*.js

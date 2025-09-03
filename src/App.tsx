@@ -122,7 +122,7 @@ function CompletionModal({ onClose, beatTheClock, totalTime, onSave }: {
             <p className="text-lg text-slate-600">
               {beatTheClock 
                 ? `Congratulations! You completed all challenges in ${totalTime.toFixed(1)} seconds.`
-                : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 40-second timer expired.`
+                : `You completed all challenges in ${totalTime.toFixed(1)} seconds, but the 35-second timer expired.`
               }
             </p>
             <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
@@ -176,8 +176,13 @@ export default function App() {
   return (
     <div className="min-h-screen w-full bg-gradient-to-b from-white to-slate-50 text-slate-900">
       <div className="max-w-5xl mx-auto p-6">
-        <header className="flex items-center gap-3 mb-6">
-          <Shield className="w-7 h-7"/>
+        <header className="flex flex-col items-start gap-2 mb-6">
+          <img 
+            src="/kasada-logo-full-color-rgb.svg?v=1" 
+            alt="Kasada" 
+            className="h-8 w-auto"
+            style={{ maxWidth: '150px' }}
+          />
           <h1 className="text-2xl font-semibold tracking-tight">CAPTCHA Race</h1>
         </header>
 
@@ -291,7 +296,7 @@ function CaptchaColumn({ label }: { label: string }) {
     setElapsed(0);
     setRunning(true);
     setTimeUp(false);
-    setCountdown(40); // Start 40-second countdown
+    setCountdown(35); // Start 35-second countdown
     t0.current = null;
     
     // Dispatch event to start timer in TimerCard
@@ -390,7 +395,7 @@ function CaptchaColumn({ label }: { label: string }) {
           {roundIdx < 0 && !timeUp && (
             <div className="space-y-4">
               <p className="text-sm text-slate-600">Complete <b>{roundsParam}</b> deliberately frustrating challenges.</p>
-              <p className="text-sm text-amber-600 font-medium">⏰ You have 40 seconds to complete all challenges!</p>
+              <p className="text-sm text-amber-600 font-medium">⏰ You have 35 seconds to complete all challenges!</p>
               <Button onClick={start}>Start challenges</Button>
             </div>
           )}
@@ -455,7 +460,7 @@ function TimerCard() {
   // Listen for game start and completion events
   useEffect(() => {
     const handleGameStart = () => {
-      setCountdown(40);
+      setCountdown(35);
       setTimeUp(false);
     };
 
@@ -522,7 +527,7 @@ function TimerCard() {
               </>
             ) : (
               <>
-                <div className="text-4xl font-bold text-slate-400">40s</div>
+                <div className="text-4xl font-bold text-slate-400">35s</div>
                 <p className="text-sm text-slate-500 mt-2">Ready to start</p>
               </>
             )}
@@ -530,7 +535,7 @@ function TimerCard() {
           
           <div className="text-center space-y-2">
             <p className="text-sm text-slate-600">
-              Beat the 40-second clock to secure your spot in this limited event.
+              Beat the 35-second clock to secure your spot in this limited event.
             </p>
           </div>
         </div>
@@ -598,7 +603,12 @@ function CaptchaSlider({ onPass, onFail }: { onPass: () => void; onFail: (angle:
     <div className="space-y-4">
       <div className="text-sm">Rotate the object to <span className="font-medium">{target}°</span> (±{tol}°).</div>
       <div className="h-24 flex items-center justify-center">
-        <div className="w-16 h-16 border rounded-xl bg-slate-200" style={{ transform: `rotate(${val[0]}deg)` }} />
+        <img 
+          src="/kasada-logo-mark-black-rgb.svg" 
+          alt="Kasada" 
+          className="w-16 h-16" 
+          style={{ transform: `rotate(${val[0]}deg)` }} 
+        />
       </div>
       <Slider value={val} onValueChange={setVal} min={0} max={180} step={1} />
       <div className="flex gap-2 items-center">
@@ -698,9 +708,13 @@ function CaptchaDragPiece({ onPass, onFail }: { onPass: () => void; onFail: () =
       <div className="text-sm">Drag the square to cover the outlined target.</div>
       <div ref={containerRef} className="relative w-[320px] h-[160px] border rounded-lg bg-slate-50 overflow-hidden">
         <div className="absolute left-[140px] top-[40px] w-8 h-8 rounded-lg border-2 border-dashed"/>
-        <div
-          className={`absolute w-8 h-8 rounded-lg bg-slate-300 border cursor-grab active:cursor-grabbing`}
+        <img
+          src="/kasada-logo-mark-black-rgb.svg"
+          alt="Kasada"
+          className="absolute w-8 h-8 cursor-grab active:cursor-grabbing"
           style={{ left: pos.x, top: pos.y }}
+          draggable={false}
+          onDragStart={(e) => e.preventDefault()}
           onMouseDown={() => setDragging(true)}
           onTouchStart={() => setDragging(true)}
         />
@@ -987,8 +1001,8 @@ function ResultsAndShare({ brand }: { brand: string }) {
                     </p>
                     <p className={`text-xs ${g.captcha.beatTheClock ? 'text-green-600' : 'text-amber-600'}`}>
                       {g.captcha.beatTheClock 
-                        ? 'Completed all challenges within 40 seconds!' 
-                        : 'Completed all challenges but exceeded 40 seconds.'
+                        ? 'Completed all challenges within 35 seconds!' 
+                        : 'Completed all challenges but exceeded 35 seconds.'
                       }
                     </p>
                   </div>
