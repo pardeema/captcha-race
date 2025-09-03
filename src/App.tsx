@@ -265,18 +265,18 @@ function CaptchaColumn({ label }: { label: string }) {
     return basePool;
   }, [isMobile]);
 
-  // Timer
+  // Timer - use setTimeout to match countdown timer behavior (pauses during alerts)
   useEffect(() => {
-    let raf: number;
+    let timer: number;
     if (running) {
-      const loop = (ts: number) => {
-        if (t0.current == null) t0.current = ts;
-        setElapsed(((ts - t0.current) / 1000));
-        raf = requestAnimationFrame(loop);
+      const updateElapsed = () => {
+        if (t0.current == null) t0.current = performance.now();
+        setElapsed(((performance.now() - t0.current) / 1000));
+        timer = setTimeout(updateElapsed, 100); // Update every 100ms for smooth display
       };
-      raf = requestAnimationFrame(loop);
+      updateElapsed();
     }
-    return () => cancelAnimationFrame(raf);
+    return () => clearTimeout(timer);
   }, [running]);
 
   // Countdown timer
