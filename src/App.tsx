@@ -142,7 +142,7 @@ function CompletionModal({ onClose, beatTheClock, totalTime, onSave }: {
                 <p className="text-sm text-green-800 font-medium">The Kasada Solution</p>
               </div>
               <p className="text-sm text-green-700 mb-3">
-                Kasada detects humans vs. bots invisibly and seamlessly—no puzzles - no friction, no frustrated users. 
+                Kasada detects humans vs. bots invisibly and seamlessly - no puzzles, no friction, no frustrated users. 
                 Protect your revenue while delivering exceptional customer experiences.
               </p>
               <a 
